@@ -1,0 +1,24 @@
+CLAUDE.md
+
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Data files (too large for git)
+data/
+
+# Trained model checkpoints (too large for git)
+models/
+
+# Framing failure logs
+data/framing_failures.log

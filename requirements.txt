@@ -1,0 +1,42 @@
+# Core
+python-dotenv==1.2.2
+
+# Data ingestion
+newsapi-python==0.2.7
+feedparser==6.0.12
+newspaper3k==0.2.8
+lxml==6.1.0
+Pillow==12.2.0
+requests==2.34.2
+gdelt==0.1.14
+
+# Storage
+chromadb==1.5.9
+
+# NLP - classification
+transformers==5.8.1
+datasets==4.8.5
+torch==2.12.0
+accelerate==1.13.0
+scikit-learn==1.8.0
+
+# NLP - embeddings
+sentence-transformers==5.5.0
+
+# NLP - clustering
+umap-learn==0.5.12
+scipy==1.17.1
+
+# Visualization
+plotly==6.7.0
+seaborn==0.13.2
+matplotlib==3.10.9
+
+# Dashboard
+streamlit==1.57.0
+
+# Utilities
+pandas==3.0.3
+numpy==2.4.4
+tqdm==4.67.3
+trafilatura==2.0.0
