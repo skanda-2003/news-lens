@@ -8,13 +8,14 @@ from tqdm import tqdm
 from src.scraper import scrape_full_text
 
 
-# ── RSS feed config ───────────────────────────────────────────────────────────
+# -- RSS feed config -----------------------------------------------------------
 
-# Each entry is (outlet_name, feed_url)
-# These are the six outlets the project tracks for political diversity
+# Each entry is (outlet_name, feed_url).
+# Reuters was originally included but shut down their public RSS feeds -
+# they still appear in the dataset via NewsAPI. Replaced with ABC News.
 RSS_FEEDS = [
     ("bbc",         "http://feeds.bbci.co.uk/news/rss.xml"),
-    ("reuters",     "https://feeds.reuters.com/reuters/topNews"),
+    ("abc_news",    "https://feeds.abcnews.com/abcnews/topstories"),
     ("the_guardian","https://www.theguardian.com/world/rss"),
     ("al_jazeera",  "https://www.aljazeera.com/xml/rss/all.xml"),
     ("fox_news",    "https://feeds.foxnews.com/foxnews/latest"),
@@ -22,25 +23,25 @@ RSS_FEEDS = [
 ]
 
 
-# ── Outlet normalisation ──────────────────────────────────────────────────────
+# -- Outlet normalisation ------------------------------------------------------
 
 # Maps substrings found in raw source names to a clean, consistent outlet slug.
-# NewsAPI returns names like "BBC News", "Fox News", "Reuters" — this converts them.
+# NewsAPI returns names like "BBC News", "Fox News", "Reuters" - this converts them.
 _OUTLET_MAP = {
-    "bbc":       "bbc",
-    "reuters":   "reuters",
-    "guardian":  "the_guardian",
-    "al jazeera":"al_jazeera",
-    "fox":       "fox_news",
-    "npr":       "npr",
-    "cnn":       "cnn",
-    "nbc":       "nbc_news",
-    "abc":       "abc_news",
+    "bbc":              "bbc",
+    "reuters":          "reuters",
+    "guardian":         "the_guardian",
+    "al jazeera":       "al_jazeera",
+    "fox":              "fox_news",
+    "npr":              "npr",
+    "cnn":              "cnn",
+    "nbc":              "nbc_news",
+    "abc":              "abc_news",
     "associated press": "ap",
     "washington post":  "washington_post",
     "new york times":   "new_york_times",
-    "politico":  "politico",
-    "the hill":  "the_hill",
+    "politico":         "politico",
+    "the hill":         "the_hill",
 }
 
 def normalise_outlet(raw_name: str) -> str:
@@ -59,7 +60,7 @@ def normalise_outlet(raw_name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "_", lower).strip("_")
 
 
-# ── NewsAPI ───────────────────────────────────────────────────────────────────
+# -- NewsAPI -------------------------------------------------------------------
 
 def fetch_newsapi_articles(topic: str, api_key: str, page_size: int = 20) -> list[dict]:
     """
@@ -109,7 +110,7 @@ def fetch_newsapi_articles(topic: str, api_key: str, page_size: int = 20) -> lis
     return articles
 
 
-# ── RSS feeds ─────────────────────────────────────────────────────────────────
+# -- RSS feeds -----------------------------------------------------------------
 
 def _parse_rss_date(entry) -> str:
     """
@@ -132,7 +133,7 @@ def _extract_rss_body(entry) -> tuple[str, str]:
     If the feed content is long enough to be useful, return it directly.
     Otherwise return empty string so the caller falls back to scraping.
     """
-    # `content` is a list of content objects — check the first one
+    # `content` is a list of content objects - check the first one
     if hasattr(entry, "content") and entry.content:
         text = entry.content[0].get("value", "")
         # Strip HTML tags to get plain text

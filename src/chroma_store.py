@@ -6,27 +6,27 @@ import chromadb
 CHROMA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "chroma_store")
 
 
-# ── Connection ────────────────────────────────────────────────────────────────
+# -- Connection ----------------------------------------------------------------
 
 def get_collection() -> chromadb.Collection:
     """
     Open the ChromaDB store on disk and return the articles collection.
 
     PersistentClient writes to disk at CHROMA_PATH so embeddings survive
-    between runs. get_or_create_collection is safe to call every time —
+    between runs. get_or_create_collection is safe to call every time -
     it creates the collection on first run and opens the existing one after.
     """
     client = chromadb.PersistentClient(path=CHROMA_PATH)
     collection = client.get_or_create_collection(
         name="articles",
         # cosine similarity is better than Euclidean distance for comparing
-        # text embeddings — it measures the angle between vectors, not their length
+        # text embeddings - it measures the angle between vectors, not their length
         metadata={"hnsw:space": "cosine"},
     )
     return collection
 
 
-# ── Write ─────────────────────────────────────────────────────────────────────
+# -- Write ---------------------------------------------------------------------
 
 def add_article(
     collection: chromadb.Collection,
@@ -43,7 +43,7 @@ def add_article(
     articles that are already stored.
 
     metadata can include: outlet, topic, bias_label, published_at.
-    headline is stored as the document string — it appears in search results.
+    headline is stored as the document string - it appears in search results.
     """
     # upsert = insert if not exists, update if already exists
     collection.upsert(
@@ -54,7 +54,7 @@ def add_article(
     )
 
 
-# ── Read ──────────────────────────────────────────────────────────────────────
+# -- Read ----------------------------------------------------------------------
 
 def query_similar(
     collection: chromadb.Collection,
@@ -82,7 +82,7 @@ def query_similar(
 
     results = collection.query(**kwargs)
 
-    # ChromaDB returns parallel lists — zip them into a more usable list of dicts
+    # ChromaDB returns parallel lists, so zip them into a more usable list of dicts
     output = []
     for i, chroma_id in enumerate(results["ids"][0]):
         output.append({
@@ -99,7 +99,7 @@ def get_by_topic(collection: chromadb.Collection, topic: str) -> dict:
     """
     Fetch all stored embeddings for a given topic.
 
-    Used by the clustering module — it needs the full matrix of embeddings
+    Used by the clustering module - it needs the full matrix of embeddings
     for a topic to run KMeans or DBSCAN on.
 
     Returns a dict with keys: ids, embeddings, headlines, metadatas.
@@ -110,8 +110,8 @@ def get_by_topic(collection: chromadb.Collection, topic: str) -> dict:
     )
 
     return {
-        "ids":       results["ids"],
+        "ids":        results["ids"],
         "embeddings": results["embeddings"],
-        "headlines": results["documents"],
-        "metadatas": results["metadatas"],
+        "headlines":  results["documents"],
+        "metadatas":  results["metadatas"],
     }
