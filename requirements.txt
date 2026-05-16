@@ -40,3 +40,4 @@ pandas==3.0.3
 numpy==2.4.4
 tqdm==4.67.3
 trafilatura==2.0.0
+nbformat==5.10.4
