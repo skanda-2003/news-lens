@@ -10,38 +10,50 @@ from src.scraper import scrape_full_text
 
 # -- RSS feed config -----------------------------------------------------------
 
-# Each entry is (outlet_name, feed_url).
-# Reuters was originally included but shut down their public RSS feeds -
-# they still appear in the dataset via NewsAPI. Replaced with ABC News.
+# Each entry is (outlet_slug, feed_url). Test each URL before running - Indian
+# outlets occasionally change or remove their RSS endpoints.
 RSS_FEEDS = [
-    ("bbc",         "http://feeds.bbci.co.uk/news/rss.xml"),
-    ("abc_news",    "https://feeds.abcnews.com/abcnews/topstories"),
-    ("the_guardian","https://www.theguardian.com/world/rss"),
-    ("al_jazeera",  "https://www.aljazeera.com/xml/rss/all.xml"),
-    ("fox_news",    "https://feeds.foxnews.com/foxnews/latest"),
-    ("npr",         "https://feeds.npr.org/1001/rss.xml"),
+    ("the_hindu",       "https://www.thehindu.com/news/national/feeder/default.rss"),
+    ("ndtv",            "https://feeds.feedburner.com/ndtvnews-top-stories"),
+    ("times_of_india",  "https://timesofindia.indiatimes.com/rssfeedstopstories.cms"),
+    ("the_wire",        "https://thewire.in/feed"),
+    ("hindustan_times", "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml"),
+    ("india_today",     "https://www.indiatoday.in/rss/home"),
+    ("scroll",          "https://scroll.in/feed"),
+    ("indian_express",  "https://indianexpress.com/section/india/feed/"),
+    ("republic_world",  "https://www.republicworld.com/feeds/top-stories.xml"),
 ]
 
 
 # -- Outlet normalisation ------------------------------------------------------
 
-# Maps substrings found in raw source names to a clean, consistent outlet slug.
-# NewsAPI returns names like "BBC News", "Fox News", "Reuters" - this converts them.
+# Maps substrings found in raw NewsAPI source names to a consistent outlet slug.
 _OUTLET_MAP = {
-    "bbc":              "bbc",
-    "reuters":          "reuters",
-    "guardian":         "the_guardian",
-    "al jazeera":       "al_jazeera",
-    "fox":              "fox_news",
-    "npr":              "npr",
-    "cnn":              "cnn",
-    "nbc":              "nbc_news",
-    "abc":              "abc_news",
-    "associated press": "ap",
-    "washington post":  "washington_post",
-    "new york times":   "new_york_times",
-    "politico":         "politico",
-    "the hill":         "the_hill",
+    "the hindu":           "the_hindu",
+    "ndtv":                "ndtv",
+    "times of india":      "times_of_india",
+    "the wire":            "the_wire",
+    "hindustan times":     "hindustan_times",
+    "india today":         "india_today",
+    "scroll":              "scroll",
+    "scroll.in":           "scroll",
+    "indian express":      "indian_express",
+    "the indian express":  "indian_express",
+    "republic world":      "republic_world",
+    "republic":            "republic_world",
+    "republicworld":       "republic_world",
+    "zee news":            "zee_news",
+    "zeenews":             "zee_news",
+    "news18":              "news18",
+    "opindia":             "opindia",
+    "the print":           "the_print",
+    "the wire science":    "the_wire",
+    "newslaundry":         "newslaundry",
+    "bbc":                 "bbc",
+    "reuters":             "reuters",
+    "associated press":    "ap",
+    "pti":                 "pti",
+    "ani":                 "ani",
 }
 
 def normalise_outlet(raw_name: str) -> str:

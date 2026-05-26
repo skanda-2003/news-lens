@@ -14,7 +14,7 @@ CONFIDENCE_THRESHOLD = 0.85
 
 MODEL_PATH = "models/bias_classifier"
 
-LABEL2ID = {"left": 0, "center": 1, "right": 2}
+LABEL2ID = {"bjp_aligned": 0, "opposition_aligned": 1, "neutral": 2}
 ID2LABEL  = {v: k for k, v in LABEL2ID.items()}
 
 # module-level cache so the model is only loaded once per process
@@ -54,7 +54,7 @@ def predict(headline: str, body: str) -> dict:
 
     Returns:
         {
-            "label":      "left" | "center" | "right",
+            "label":      "bjp_aligned" | "opposition_aligned" | "neutral",
             "confidence": float (0-1),
             "trusted":    bool  (True if confidence >= CONFIDENCE_THRESHOLD)
         }
