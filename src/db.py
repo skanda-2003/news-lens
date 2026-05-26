@@ -135,3 +135,53 @@ def get_article_count(conn: sqlite3.Connection) -> int:
     """Return the total number of articles in the database."""
     row = conn.execute("SELECT COUNT(*) FROM articles").fetchone()
     return row[0]
+
+
+def get_distinct_outlets(conn: sqlite3.Connection) -> list[str]:
+    """Return a sorted list of every outlet slug that appears in the database."""
+    rows = conn.execute(
+        "SELECT DISTINCT outlet FROM articles WHERE outlet IS NOT NULL ORDER BY outlet"
+    ).fetchall()
+    return [row[0] for row in rows]
+
+
+def get_distinct_topics(conn: sqlite3.Connection) -> list[str]:
+    """Return a sorted list of every non-empty topic string in the database."""
+    rows = conn.execute(
+        "SELECT DISTINCT topic FROM articles WHERE topic IS NOT NULL AND topic != '' ORDER BY topic"
+    ).fetchall()
+    return [row[0] for row in rows]
+
+
+def get_framing_articles(
+    conn: sqlite3.Connection,
+    topic: str = None,
+    outlet: str = None,
+) -> list[dict]:
+    """
+    Return articles where framing was successfully extracted (framing_parsed = 1).
+
+    Columns returned: outlet, headline, framing_villain, framing_victim,
+    framing_solution, bias_label, published_at.
+
+    Optional filters: topic, outlet.
+    """
+    query = """
+        SELECT outlet, headline, framing_villain, framing_victim,
+               framing_solution, bias_label, published_at
+        FROM articles
+        WHERE framing_parsed = 1
+    """
+    params = []
+
+    if topic:
+        query += " AND topic = ?"
+        params.append(topic)
+    if outlet:
+        query += " AND outlet = ?"
+        params.append(outlet)
+
+    query += " ORDER BY published_at DESC"
+
+    rows = conn.execute(query, params).fetchall()
+    return [dict(row) for row in rows]
