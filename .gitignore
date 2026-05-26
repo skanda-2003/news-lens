@@ -22,3 +22,7 @@ models/
 
 # Framing failure logs
 data/framing_failures.log
+
+# Local planning notes
+india_plan.md
+ui.md
