@@ -23,6 +23,9 @@ models/
 # Framing failure logs
 data/framing_failures.log
 
-# Local planning notes
+# Local planning notes - not part of the project
 india_plan.md
 ui.md
+PLAN.md
+PLAN_branch1_india_pipeline.md
+PLAN_branch2_project_completion.md
