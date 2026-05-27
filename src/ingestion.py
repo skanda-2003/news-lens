@@ -83,7 +83,7 @@ _OUTLET_MAP = {
 def normalise_outlet(raw_name: str) -> str:
     """
     Convert a raw outlet name from NewsAPI or an RSS feed title into a
-    consistent lowercase slug e.g. "BBC News" -> "bbc".
+    consistent lowercase slug e.g. "Hindustan Times" -> "hindustan_times".
     Falls back to a slugified version of the raw name if no match is found.
     """
     lower = raw_name.lower()
@@ -127,7 +127,7 @@ def fetch_newsapi_articles(topic: str, api_key: str, page_size: int = 20) -> lis
         outlet = normalise_outlet(raw_outlet)
 
         # Drop foreign outlets - NewsAPI returns international coverage of India
-        # (Fox News, BBC, Reuters, etc.) which we don't want in an Indian bias analysis.
+        # (Fox News, BBC, Reuters, etc.) which I don't want in an Indian bias analysis.
         if outlet not in _INDIAN_OUTLETS:
             continue
 

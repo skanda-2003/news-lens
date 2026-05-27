@@ -64,12 +64,11 @@ def run(overwrite: bool = False) -> None:
         ]
         predictions = predict_batch(articles_input, batch_size=BATCH_SIZE)
 
-        # Collect the ChromaDB updates so we can send them in one batch call
+        # Collect the ChromaDB updates so I can send them in one batch call
         chroma_ids_to_update = []
         chroma_metadatas_to_update = []
 
         for row, pred in zip(batch, predictions):
-            # Map "center" → "centre" before writing to the database
             label      = LABEL_MAP[pred["label"]]
             confidence = pred["confidence"]
             trusted    = 1 if pred["trusted"] else 0

@@ -23,7 +23,3 @@ models/
 # Pipeline run logs
 logs/
 
-# Local planning notes - not part of the project
-ui.md
-PLAN_branch1_india_pipeline.md
-PLAN_branch2_project_completion.md

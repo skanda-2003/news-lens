@@ -64,8 +64,8 @@ def load_drift_data(outlets: list[str] = DRIFT_OUTLETS) -> pd.DataFrame:
       outlet, published_at, bias_label, bias_confidence, source, date, month
 
     Rows with unparseable dates or missing bias_label are dropped.
-    Articles from before 2025 are excluded - the one 2017 BBC article in the DB
-    is an RSS feed artefact, not representative historical data.
+    Articles from before November 2025 are excluded - isolated early articles
+    are RSS feed artefacts, not representative historical data.
     """
     conn = sqlite3.connect(DB_PATH)
 
@@ -134,7 +134,7 @@ def compute_baselines(monthly_df: pd.DataFrame, n_months: int = 2) -> dict:
     detect drift.
 
     Returns a dict keyed by outlet name. Each value is a dict with keys:
-      left_mean, centre_mean, right_mean  - mean proportions during baseline period
+      bjp_aligned_mean, opposition_aligned_mean, neutral_mean  - mean proportions during baseline period
       n_baseline_months                   - how many months were used
       baseline_months                     - list of month strings used
     """

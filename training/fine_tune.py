@@ -182,7 +182,7 @@ def train():
     optimizer = AdamW(model.parameters(), lr=LEARNING_RATE, weight_decay=0.01)
 
     # total number of optimiser steps over all epochs
-    # we only call optimizer.step() every GRAD_ACCUM_STEPS batches, hence the division
+    # I only call optimizer.step() every GRAD_ACCUM_STEPS batches, hence the division
     total_steps  = (len(train_loader) // GRAD_ACCUM_STEPS) * NUM_EPOCHS
     warmup_steps = int(total_steps * 0.1)  # warm up for the first 10% of training
 

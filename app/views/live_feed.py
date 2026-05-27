@@ -145,7 +145,7 @@ def page_live_feed():
     # ── Pagination ────────────────────────────────────────────────────────────
     total_pages = max(1, (len(articles) + PAGE_SIZE - 1) // PAGE_SIZE)
 
-    # Reset to page 0 when filters change so we don't land on a nonexistent page
+    # Reset to page 0 when filters change so I don't land on a nonexistent page
     filter_key = (topic_sel, tuple(outlet_sel), tuple(bias_sel), tuple(source_sel))
     if st.session_state.get("feed_filter_key") != filter_key:
         st.session_state.feed_page = 0

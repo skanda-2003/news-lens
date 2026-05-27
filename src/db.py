@@ -42,7 +42,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
             ingested_at      TEXT,          -- when this row was inserted, set automatically
 
             -- Bias classification (filled in later by the classifier)
-            bias_label       TEXT,          -- "left" | "centre" | "right"
+            bias_label       TEXT,          -- "bjp_aligned" | "opposition_aligned" | "neutral"
             bias_confidence  REAL,          -- model confidence score between 0 and 1
             bias_trusted     INTEGER,       -- 1 if confidence is above threshold, 0 if uncertain
 
