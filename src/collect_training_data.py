@@ -57,15 +57,45 @@ RSS_FEEDS_BY_LABEL = {
     ],
 }
 
-# Sections to scrape from theprint.in for opposition_aligned articles.
-# theprint.in RSS returns HTML (bozo) but direct scraping works fine.
-THEPRINT_SECTIONS = [
-    "https://theprint.in/politics/",
-    "https://theprint.in/india/governance/",
-    "https://theprint.in/india/",
-    "https://theprint.in/opinion/",
-    "https://theprint.in/judiciary/",
+# Opposition sources - scraped directly because RSS feeds are broken in WSL.
+# Three outlets to improve class diversity beyond single-outlet theprint.in.
+OPPOSITION_SOURCES = [
+    {
+        "outlet":   "theprint",
+        "sections": [
+            "https://theprint.in/politics/",
+            "https://theprint.in/india/governance/",
+            "https://theprint.in/india/",
+            "https://theprint.in/opinion/",
+            "https://theprint.in/judiciary/",
+        ],
+        "domain":   "theprint.in",
+        "url_segs": ["/politics/", "/india/", "/opinion/", "/judiciary/"],
+    },
+    {
+        "outlet":   "thewire",
+        "sections": [
+            "https://thewire.in/politics",
+            "https://thewire.in/government",
+            "https://thewire.in/law",
+            "https://thewire.in/rights",
+        ],
+        "domain":   "thewire.in",
+        "url_segs": ["/politics/", "/government/", "/law/", "/rights/"],
+    },
+    {
+        "outlet":   "scroll",
+        "sections": [
+            "https://scroll.in/topic/politics",
+            "https://scroll.in/topic/government",
+        ],
+        "domain":   "scroll.in",
+        "url_segs": ["/article/"],
+    },
 ]
+
+# Target per opposition outlet - 3 outlets × 70 ≈ 210 total opposition articles
+OPPOSITION_TARGET_PER_OUTLET = 70
 
 TARGET_PER_LABEL    = 200   # per class - achievable via RSS even for small outlets
 MIN_WORDS           = 100
@@ -116,15 +146,16 @@ def _detect_neutral_domain(url: str) -> str | None:
 
 # -- RSS helpers ---------------------------------------------------------------
 
-def _collect_opposition_from_theprint(target: int) -> list[dict]:
+def _collect_opposition_from_source(source: dict, target: int) -> list[dict]:
     """
-    Scrape article links from theprint.in section pages, then scrape full text.
-    theprint.in RSS is broken in this environment but the website is accessible.
+    Scrape article links from a list of section pages for one outlet, then
+    scrape full text. Works for any outlet whose section pages are accessible
+    via requests (verify=False handles WSL SSL issues).
     """
     seen_urls: set[str] = set()
     rows: list[dict] = []
 
-    for section_url in THEPRINT_SECTIONS:
+    for section_url in source["sections"]:
         if len(rows) >= target:
             break
         try:
@@ -132,8 +163,8 @@ def _collect_opposition_from_theprint(target: int) -> list[dict]:
             soup = BeautifulSoup(r.text, "html.parser")
             links = [
                 a["href"] for a in soup.find_all("a", href=True)
-                if "theprint.in/" in a["href"]
-                and any(seg in a["href"] for seg in ["/politics/", "/india/", "/opinion/", "/judiciary/"])
+                if source["domain"] in a["href"]
+                and any(seg in a["href"] for seg in source["url_segs"])
                 and a["href"] not in seen_urls
                 and len(a["href"]) > 40
             ]
@@ -155,7 +186,7 @@ def _collect_opposition_from_theprint(target: int) -> list[dict]:
             rows.append({
                 "text":           body,
                 "label":          "opposition_aligned",
-                "outlet":         "theprint",
+                "outlet":         source["outlet"],
                 "url":            url,
                 "published_date": "",
             })
@@ -269,9 +300,14 @@ def collect() -> None:
     print(f"bjp_aligned collected: {len(bjp_rows)}")
     all_rows.extend(bjp_rows)
 
-    # ── Phase 3: Scrape theprint.in for opposition_aligned ────────────────────
-    print("\n=== Phase 3: theprint.in opposition_aligned collection ===")
-    opp_rows = _collect_opposition_from_theprint(TARGET_PER_LABEL)
+    # ── Phase 3: Scrape opposition outlets (theprint, thewire, scroll) ───────
+    print("\n=== Phase 3: opposition_aligned collection (theprint + thewire + scroll) ===")
+    opp_rows: list[dict] = []
+    for source in OPPOSITION_SOURCES:
+        print(f"  Scraping {source['outlet']}...")
+        rows = _collect_opposition_from_source(source, OPPOSITION_TARGET_PER_OUTLET)
+        print(f"    {source['outlet']}: {len(rows)} articles")
+        opp_rows.extend(rows)
     print(f"opposition_aligned collected: {len(opp_rows)}")
     all_rows.extend(opp_rows)
 

@@ -34,6 +34,7 @@ from tqdm import tqdm
 MODEL_NAME       = "roberta-base"
 TRAIN_PATH       = "data/india_training/train.csv"
 VAL_PATH         = "data/india_training/val.csv"
+TEST_PATH        = "data/india_training/test.csv"
 MODEL_OUTPUT_DIR = "models/bias_classifier"
 
 BATCH_SIZE       = 16   # articles per GPU step
@@ -114,11 +115,10 @@ def evaluate(model, loader, device, loss_fct):
 
     avg_loss = total_loss / len(loader)
 
-    # average="macro" gives equal weight to each class regardless of sample count
-    # this is the right metric when class sizes are unequal (left >> center in our data)
-    macro_f1 = f1_score(all_labels, all_preds, average="macro")
+    macro_f1      = f1_score(all_labels, all_preds, average="macro")
+    per_class_f1  = f1_score(all_labels, all_preds, average=None, labels=[0, 1, 2])
 
-    return avg_loss, macro_f1
+    return avg_loss, macro_f1, per_class_f1
 
 
 # ── training ──────────────────────────────────────────────────────────────────
@@ -243,13 +243,17 @@ def train():
         avg_train_loss = total_train_loss / len(train_loader)
 
         # evaluate on the validation set after every epoch
-        val_loss, val_f1 = evaluate(model, val_loader, DEVICE, loss_fct)
+        val_loss, val_f1, val_per_class = evaluate(model, val_loader, DEVICE, loss_fct)
 
+        per_class_str = "  ".join(
+            f"{ID2LABEL[i]}: {val_per_class[i]:.3f}" for i in range(3)
+        )
         print(
             f"\nEpoch {epoch + 1}/{NUM_EPOCHS}"
             f" | Train loss: {avg_train_loss:.4f}"
             f" | Val loss: {val_loss:.4f}"
             f" | Val macro F1: {val_f1:.4f}"
+            f"\n  Per-class F1 - {per_class_str}"
         )
 
         # save checkpoint only if this epoch produced the best val macro F1 so far
@@ -268,6 +272,21 @@ def train():
     print(f"Training complete.")
     print(f"Best val macro F1: {best_val_f1:.4f}")
     print(f"Checkpoint saved to: {MODEL_OUTPUT_DIR}/")
+
+    # Final evaluation on the held-out test set using the best saved checkpoint.
+    # Val F1 is optimistic because the checkpoint was selected based on val performance.
+    # Test F1 is the honest generalization metric.
+    print(f"\nEvaluating best checkpoint on test set...")
+    test_df      = pd.read_csv(TEST_PATH)
+    test_dataset = BiasDataset(test_df, tokenizer)
+    test_loader  = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=collator)
+
+    best_model = AutoModelForSequenceClassification.from_pretrained(MODEL_OUTPUT_DIR).to(DEVICE)
+    test_loss, test_f1, test_per_class = evaluate(best_model, test_loader, DEVICE, loss_fct)
+
+    print(f"Test macro F1: {test_f1:.4f}  |  Test loss: {test_loss:.4f}")
+    for i in range(3):
+        print(f"  {ID2LABEL[i]}: {test_per_class[i]:.4f}")
 
 
 if __name__ == "__main__":

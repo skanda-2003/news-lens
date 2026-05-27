@@ -10,7 +10,7 @@ import sqlite3
 
 from tqdm import tqdm
 
-from src.classifier import predict_batch
+from src.classifier import predict_batch, CONFIDENCE_THRESHOLD
 from src.db import get_connection
 from src.chroma_store import get_collection
 
@@ -106,7 +106,7 @@ def run(overwrite: bool = False) -> None:
     opp  = conn.execute("SELECT COUNT(*) FROM articles WHERE bias_label = 'opposition_aligned'").fetchone()[0]
     neu  = conn.execute("SELECT COUNT(*) FROM articles WHERE bias_label = 'neutral'").fetchone()[0]
 
-    print(f"\nDone. {total} articles classified, {trusted} trusted (confidence >= 0.85).")
+    print(f"\nDone. {total} articles classified, {trusted} trusted (confidence >= {CONFIDENCE_THRESHOLD}).")
     print(f"Labels: bjp_aligned={bjp}, opposition_aligned={opp}, neutral={neu}")
 
     conn.close()

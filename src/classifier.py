@@ -36,12 +36,12 @@ def _load_model():
 
 def _build_input(headline: str, body: str) -> str:
     """
-    Build the RoBERTa input string from headline and body text.
-
-    Uses the same format as training: headline + </s> separator + first 400 chars of body.
-    </s> is RoBERTa's separator token - not [SEP], which is BERT-specific.
+    Build the RoBERTa input string. Uses body text only to match the training format -
+    training articles from GDELT/theprint don't have a separate headline column, so
+    training was done on plain body text. Keeping the same format at inference avoids
+    a train/serve distribution mismatch.
     """
-    return f"{headline} </s> {body[:400]}"
+    return body[:500]
 
 
 def predict(headline: str, body: str) -> dict:

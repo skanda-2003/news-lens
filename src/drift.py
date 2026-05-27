@@ -18,8 +18,11 @@ import pandas as pd
 # Anchor path to this file's location so it works from any working directory
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "newslens.db")
 
-# The four outlets that have GDELT historical data - one per alignment tier
-DRIFT_OUTLETS = ["the_hindu", "ndtv", "the_wire", "republic_world"]
+# Outlets with enough GDELT historical data for drift analysis.
+# Chosen based on actual article counts: hindustan_times=72, times_of_india=56,
+# indian_express=36, the_hindu=29 in the GDELT pull. the_wire and republic_world
+# had 0 and 2 articles respectively - not enough for any meaningful drift signal.
+DRIFT_OUTLETS = ["hindustan_times", "times_of_india", "indian_express", "the_hindu"]
 
 
 def parse_date(date_str: str) -> datetime | None:

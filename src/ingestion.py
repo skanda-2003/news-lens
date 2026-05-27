@@ -2,10 +2,15 @@ import re
 from datetime import datetime, timezone
 
 import feedparser
+import requests
 from newsapi import NewsApiClient
 from tqdm import tqdm
 
 from src.scraper import scrape_full_text
+
+# Outlets whose RSS feeds fail with SSL errors in WSL - pre-fetch content with
+# requests (verify=False) and pass the raw bytes to feedparser instead
+_SSL_PROBLEMATIC_FEEDS = {"the_wire", "republic_world"}
 
 
 # -- RSS feed config -----------------------------------------------------------
@@ -22,7 +27,26 @@ RSS_FEEDS = [
     ("scroll",          "https://scroll.in/feed"),
     ("indian_express",  "https://indianexpress.com/section/india/feed/"),
     ("republic_world",  "https://www.republicworld.com/feeds/top-stories.xml"),
+    ("zee_news",        "https://zeenews.india.com/rss/india-national-news.xml"),
+    ("news18",          "https://www.news18.com/rss/india.xml"),
 ]
+
+
+# -- Outlet allowlist ----------------------------------------------------------
+
+# NewsAPI searches on Indian topics also return foreign coverage of India (Fox News,
+# BBC, Reuters, RT, etc.). These are not useful for an Indian media bias analysis,
+# so I drop any article whose outlet slug is not in this set.
+# RSS articles are always from known Indian outlets (the feeds are hardcoded above),
+# so the filter is only applied to the NewsAPI path.
+_INDIAN_OUTLETS = {
+    "the_hindu", "ndtv", "times_of_india", "the_wire", "hindustan_times",
+    "india_today", "scroll", "indian_express", "republic_world",
+    "zee_news", "news18", "opindia", "the_print", "newslaundry",
+    "businessline", "livemint", "pti", "ani", "the_quint",
+    "deccan_herald", "deccan_chronicle", "tribune_india", "firstpost",
+    "the_telegraph", "free_press_journal", "national_herald", "wire_science",
+}
 
 
 # -- Outlet normalisation ------------------------------------------------------
@@ -99,17 +123,23 @@ def fetch_newsapi_articles(topic: str, api_key: str, page_size: int = 20) -> lis
         if not url:
             continue
 
+        raw_outlet = item.get("source", {}).get("name", "unknown")
+        outlet = normalise_outlet(raw_outlet)
+
+        # Drop foreign outlets - NewsAPI returns international coverage of India
+        # (Fox News, BBC, Reuters, etc.) which we don't want in an Indian bias analysis.
+        if outlet not in _INDIAN_OUTLETS:
+            continue
+
         body, body_source = scrape_full_text(url)
 
         # If scraping failed, fall back to the truncated summary NewsAPI provides
         if body_source == "summary_only":
             body = item.get("description", "") or ""
 
-        raw_outlet = item.get("source", {}).get("name", "unknown")
-
         articles.append({
             "url":          url,
-            "outlet":       normalise_outlet(raw_outlet),
+            "outlet":       outlet,
             "headline":     item.get("title", ""),
             "body":         body,
             "body_source":  body_source,
@@ -164,7 +194,14 @@ def fetch_rss_articles() -> list[dict]:
     all_articles = []
 
     for outlet_slug, feed_url in RSS_FEEDS:
-        feed = feedparser.parse(feed_url)
+        if outlet_slug in _SSL_PROBLEMATIC_FEEDS:
+            try:
+                resp = requests.get(feed_url, timeout=10, verify=False)
+                feed = feedparser.parse(resp.content)
+            except Exception:
+                feed = feedparser.parse(feed_url)
+        else:
+            feed = feedparser.parse(feed_url)
 
         for entry in tqdm(feed.entries, desc=f"Scraping RSS [{outlet_slug}]"):
             url = entry.get("link", "")
