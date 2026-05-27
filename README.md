@@ -20,8 +20,10 @@ differences unusually large and measurable.
 | *Live Feed - articles with bias labels and distribution bar* | *Narrative Map - UMAP clusters by topic* |
 | ![Framing Explorer](screenshots/framing_explorer.png) | ![Framing by Outlet](screenshots/framing_by_outlet.png) |
 | *Framing Explorer - top villain/victim/solution phrases* | *Framing by outlet - which outlet blames whom* |
-| ![Synthesis](screenshots/synthesis.png) | ![Drift Monitor](screenshots/drift_monitor.png) |
-| *Synthesis - neutral summary vs framing divergence* | *Drift Monitor - bias shift over time* |
+| ![Synthesis - what happened](screenshots/synthesis_what_happened.png) | ![Synthesis - how it was framed](screenshots/synthesis_how_it_was_framed.png) |
+| *Synthesis - neutral factual summary* | *Synthesis - BJP-aligned vs opposition framing side by side* |
+| ![Drift Monitor](screenshots/drift_monitor.png) | |
+| *Drift Monitor - bias shift over time per outlet* | |
 
 ---
 
