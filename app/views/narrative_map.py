@@ -12,7 +12,7 @@ from src.db import get_connection, get_distinct_topics
 from src.clustering import cluster_topic
 
 CLUSTER_COLORS = ["#FF4D00", "#2563EB", "#16A34A", "#9333EA", "#CA8A04", "#0891B2"]
-BIAS_COLOR_MAP  = {"left": "🔵", "centre": "⚫", "right": "🔴"}
+BIAS_COLOR_MAP = {"bjp_aligned": "🟠", "opposition_aligned": "🔵", "neutral": "⚫"}
 
 
 @st.cache_resource
@@ -37,6 +37,39 @@ def _umap(topic: str, embeddings: np.ndarray) -> np.ndarray:
     return reducer.fit_transform(embeddings)
 
 
+def _outlet_distribution_chart(cluster_id: int, labels: np.ndarray, metadatas: list[dict]):
+    """
+    Shows which outlets appear in a cluster. Makes it visually obvious when
+    Republic World and The Wire never end up in the same narrative cluster.
+    """
+    outlet_counts: dict = {}
+    for lbl, meta in zip(labels, metadatas):
+        if lbl != cluster_id:
+            continue
+        outlet = meta.get("outlet") or "unknown"
+        outlet_counts[outlet] = outlet_counts.get(outlet, 0) + 1
+    if not outlet_counts:
+        return None
+    sorted_items = sorted(outlet_counts.items(), key=lambda x: x[1], reverse=True)
+    fig = go.Figure(go.Bar(
+        x=[i[1] for i in sorted_items],
+        y=[i[0] for i in sorted_items],
+        orientation="h",
+        marker_color="#2563EB",
+        text=[i[1] for i in sorted_items],
+        textposition="outside",
+    ))
+    fig.update_layout(
+        height=max(120, len(sorted_items) * 28 + 40),
+        margin=dict(l=0, r=30, t=0, b=0),
+        paper_bgcolor="white", plot_bgcolor="white",
+        xaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
+        yaxis=dict(tickfont=dict(size=10)),
+        showlegend=False,
+    )
+    return fig
+
+
 def page_narrative_map():
     st.header("Narrative Map")
     st.caption(
@@ -59,9 +92,9 @@ def page_narrative_map():
         st.info("Select a topic and click Run clustering.")
         return
 
-    result   = _cluster(active_topic)
-    coords   = _umap(active_topic, result["embeddings"])
-    labels   = result["labels"]
+    result    = _cluster(active_topic)
+    coords    = _umap(active_topic, result["embeddings"])
+    labels    = result["labels"]
     headlines = result["headlines"]
     metadatas = result["metadatas"]
     clusters  = result["clusters"]
@@ -118,21 +151,25 @@ def page_narrative_map():
     st.subheader("Cluster breakdown")
     for cid, cluster in clusters.items():
         if cid == -1:
-            label_str = f"Noise — {cluster['size']} articles"
+            label_str = f"Noise - {cluster['size']} articles"
         else:
-            color = CLUSTER_COLORS[cid % len(CLUSTER_COLORS)]
-            label_str = f"Cluster {cid} — {cluster['size']} articles"
+            label_str = f"Cluster {cid} - {cluster['size']} articles"
 
         with st.expander(label_str, expanded=(cid != -1)):
             dist = cluster.get("bias_distribution", {})
             if dist:
                 d1, d2, d3 = st.columns(3)
-                d1.metric("Left", f"{dist.get('left', 0):.0f}%")
-                d2.metric("Centre", f"{dist.get('centre', 0):.0f}%")
-                d3.metric("Right", f"{dist.get('right', 0):.0f}%")
+                d1.metric("BJP-aligned",        f"{dist.get('bjp_aligned', 0):.0f}%")
+                d2.metric("Opposition-aligned", f"{dist.get('opposition_aligned', 0):.0f}%")
+                d3.metric("Neutral",            f"{dist.get('neutral', 0):.0f}%")
 
             rep = cluster.get("representative_headlines", [])
             if rep:
                 st.markdown("**Representative headlines:**")
                 for h in rep[:5]:
                     st.markdown(f"- {h}")
+
+            outlet_fig = _outlet_distribution_chart(cid, labels, metadatas)
+            if outlet_fig:
+                st.caption("Outlet distribution")
+                st.plotly_chart(outlet_fig, use_container_width=True)

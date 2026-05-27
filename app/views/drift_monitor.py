@@ -15,8 +15,18 @@ from src.drift import (
     detect_drift_events,
 )
 
-BIAS_COLORS = {"left": "#2563EB", "centre": "#6B7280", "right": "#DC2626"}
+BIAS_COLORS = {
+    "bjp_aligned":        "#FF6B00",
+    "opposition_aligned": "#2563EB",
+    "neutral":            "#6B7280",
+}
 DRIFT_COLOR = "#FF4D00"
+
+LABEL_DISPLAY = {
+    "bjp_aligned":        "BJP-aligned",
+    "opposition_aligned": "Opposition-aligned",
+    "neutral":            "Neutral",
+}
 
 
 @st.cache_data(ttl=3600, show_spinner="Loading drift data...")
@@ -37,12 +47,12 @@ def _chart(outlet: str, monthly: pd.DataFrame, baselines: dict, events: pd.DataF
     fig    = go.Figure()
 
     # Bias percentage lines
-    for label in ["left", "centre", "right"]:
+    for label in ["bjp_aligned", "opposition_aligned", "neutral"]:
         fig.add_trace(go.Scatter(
             x=months,
             y=outlet_df[f"{label}_pct"],
             mode="lines+markers",
-            name=label.capitalize(),
+            name=LABEL_DISPLAY[label],
             line=dict(color=BIAS_COLORS[label], width=2),
             marker=dict(size=6),
         ))
@@ -57,9 +67,9 @@ def _chart(outlet: str, monthly: pd.DataFrame, baselines: dict, events: pd.DataF
         yaxis="y2",
     ))
 
-    # Baseline bands: shaded region showing the ±20pp threshold window
+    # Baseline bands: shaded region showing the +-20pp threshold window
     base = baselines.get(outlet, {})
-    for label in ["left", "centre", "right"]:
+    for label in ["bjp_aligned", "opposition_aligned", "neutral"]:
         mean_val = base.get(f"{label}_mean", 0)
         fig.add_hrect(
             y0=max(0, mean_val - 20),
@@ -101,7 +111,7 @@ def page_drift_monitor():
     st.header("Drift Monitor")
     st.caption(
         "Tracks whether an outlet's political lean has shifted over time. "
-        "Shaded bands show the ±20pp baseline threshold. Orange dashed lines mark drift events."
+        "Shaded bands show the +-20pp baseline threshold. Orange dashed lines mark drift events."
     )
 
     monthly, baselines, events = _load()
@@ -110,6 +120,24 @@ def page_drift_monitor():
         st.warning("No drift data available. Run the GDELT ingestion pipeline first.")
         return
 
+    # ── All-outlets overview table ────────────────────────────────────────────
+    st.subheader("All outlets overview")
+    summary_rows = []
+    for o in sorted(monthly["outlet"].unique()):
+        base    = baselines.get(o, {})
+        o_df    = monthly[monthly["outlet"] == o].sort_values("month")
+        current = o_df["bjp_aligned_pct"].iloc[-1] if not o_df.empty else 0
+        n_events = int((events["outlet"] == o).sum()) if not events.empty else 0
+        summary_rows.append({
+            "Outlet":                 o,
+            "Baseline BJP-aligned %": f"{base.get('bjp_aligned_mean', 0):.0f}%",
+            "Current BJP-aligned %":  f"{current:.0f}%",
+            "Drift events":           n_events,
+        })
+    st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
+    st.divider()
+
+    # ── Per-outlet detail ─────────────────────────────────────────────────────
     available = sorted(monthly["outlet"].unique().tolist())
     outlet    = st.selectbox("Select outlet", available)
 
@@ -130,7 +158,7 @@ def page_drift_monitor():
     if base:
         st.caption(
             f"Baseline months: {', '.join(base['baseline_months'])}  ·  "
-            f"Threshold: ±20 percentage points  ·  Min 5 articles/month to qualify"
+            f"Threshold: +-20 percentage points  ·  Min 5 articles/month to qualify"
         )
 
     st.divider()
@@ -155,6 +183,6 @@ def page_drift_monitor():
     st.divider()
     st.caption(
         "Methodology: baseline = first 2 months of data per outlet. "
-        "Drift = absolute deviation ≥ 20pp from baseline. "
+        "Drift = absolute deviation >= 20pp from baseline. "
         "Historical data sourced from GDELT."
     )
