@@ -12,6 +12,19 @@ differences unusually large and measurable.
 
 ---
 
+## Screenshots
+
+| | |
+|---|---|
+| ![Live Feed](screenshots/live_feed.png) | ![Narrative Map](screenshots/narrative_map.png) |
+| *Live Feed - articles with bias labels and distribution bar* | *Narrative Map - UMAP clusters by topic* |
+| ![Framing Explorer](screenshots/framing_explorer.png) | ![Framing by Outlet](screenshots/framing_by_outlet.png) |
+| *Framing Explorer - top villain/victim/solution phrases* | *Framing by outlet - which outlet blames whom* |
+| ![Synthesis](screenshots/synthesis.png) | ![Drift Monitor](screenshots/drift_monitor.png) |
+| *Synthesis - neutral summary vs framing divergence* | *Drift Monitor - bias shift over time* |
+
+---
+
 ## What it does
 
 **1. Bias classification** - Every article is classified as `bjp_aligned`, `opposition_aligned`,
