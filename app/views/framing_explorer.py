@@ -114,15 +114,16 @@ def _outlet_bar_chart(outlet_data: dict, title: str):
     fig = go.Figure(go.Bar(
         x=counts, y=outlets, orientation="h",
         text=phrases, textposition="outside",
+        cliponaxis=False,
         marker_color="#6366F1",
         hovertemplate="<b>%{y}</b><br>Phrase: %{text}<br>Count: %{x}<extra></extra>",
     ))
     fig.update_layout(
         title=dict(text=title, font=dict(size=13)),
         height=max(200, len(outlets) * 35 + 60),
-        margin=dict(l=0, r=180, t=36, b=0),
+        margin=dict(l=0, r=220, t=36, b=0),
         paper_bgcolor="white", plot_bgcolor="white",
-        xaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
+        xaxis=dict(showgrid=False, showticklabels=False, zeroline=False, automargin=True),
         yaxis=dict(tickfont=dict(size=11)),
     )
     return fig
