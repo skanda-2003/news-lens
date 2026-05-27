@@ -8,9 +8,9 @@ They never load the model themselves - they call predict() or predict_batch().
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-# derived empirically from the confidence error-rate table in 02_classifier_eval.ipynb
-# below this threshold, error rate stays above 29% - not trustworthy enough for a hard label
-CONFIDENCE_THRESHOLD = 0.85
+# re-derived for the Indian model (8-epoch, val macro F1 0.845, 334 training samples)
+# at 0.5 the model is at least 17pp above random (1/3) - empirically the useful cutoff
+CONFIDENCE_THRESHOLD = 0.5
 
 MODEL_PATH = "models/bias_classifier"
 

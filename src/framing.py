@@ -205,5 +205,4 @@ def extract_framing(limit: int = None) -> None:
 
 
 if __name__ == "__main__":
-    # Run with limit=10 for a quick sanity check before running on all 472 articles
-    extract_framing(limit=10)
+    extract_framing()

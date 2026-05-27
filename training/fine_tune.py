@@ -14,6 +14,7 @@ Writes: models/bias_classifier/
 import os
 import pandas as pd
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from transformers import (
     AutoTokenizer,
@@ -23,6 +24,8 @@ from transformers import (
 )
 from torch.optim import AdamW
 from sklearn.metrics import f1_score
+from sklearn.utils.class_weight import compute_class_weight
+import numpy as np
 from tqdm import tqdm
 
 
@@ -36,7 +39,7 @@ MODEL_OUTPUT_DIR = "models/bias_classifier"
 BATCH_SIZE       = 16   # articles per GPU step
 GRAD_ACCUM_STEPS = 2    # step the optimiser every 2 batches → effective batch size = 32
 LEARNING_RATE    = 2e-5
-NUM_EPOCHS       = 3
+NUM_EPOCHS       = 8
 MAX_LENGTH       = 512  # RoBERTa's hard token limit
 
 LABEL2ID = {"bjp_aligned": 0, "opposition_aligned": 1, "neutral": 2}
@@ -84,7 +87,7 @@ class BiasDataset(Dataset):
 
 # ── evaluation function ───────────────────────────────────────────────────────
 
-def evaluate(model, loader, device):
+def evaluate(model, loader, device, loss_fct):
     """
     Run inference on a DataLoader. Returns (avg_loss, macro_f1).
 
@@ -99,14 +102,15 @@ def evaluate(model, loader, device):
     with torch.no_grad():  # skip gradient tracking - faster and uses less memory
         for batch in loader:
             batch  = {k: v.to(device) for k, v in batch.items()}
-            output = model(**batch)  # passing labels= makes the model compute loss internally
+            labels = batch.pop("labels")
+            output = model(**batch)
 
-            total_loss += output.loss.item()
+            total_loss += loss_fct(output.logits, labels).item()
 
             # argmax picks the class index with the highest score
             preds = output.logits.argmax(dim=-1)
             all_preds.extend(preds.cpu().tolist())
-            all_labels.extend(batch["labels"].cpu().tolist())
+            all_labels.extend(labels.cpu().tolist())
 
     avg_loss = total_loss / len(loader)
 
@@ -148,6 +152,19 @@ def train():
     val_loader = DataLoader(
         val_dataset,   batch_size=BATCH_SIZE, shuffle=False, collate_fn=collator
     )
+
+    # Compute class weights to counteract the training imbalance.
+    # With 200 neutral / 88 bjp / 46 opposition the model would otherwise
+    # over-predict neutral. 'balanced' gives weight = n_total / (n_classes * n_class).
+    label_ids = [LABEL2ID[l] for l in train_df["label"]]
+    class_weights = compute_class_weight(
+        class_weight="balanced",
+        classes=np.array([0, 1, 2]),
+        y=np.array(label_ids),
+    )
+    class_weights_tensor = torch.tensor(class_weights, dtype=torch.float).to(DEVICE)
+    loss_fct = nn.CrossEntropyLoss(weight=class_weights_tensor)
+    print(f"\nClass weights: {dict(zip(ID2LABEL.values(), class_weights.round(2)))}")
 
     # load roberta-base with a fresh 3-class classification head on top
     # the head is a single linear layer: 768-dim RoBERTa output → 3 class scores
@@ -202,14 +219,14 @@ def train():
 
         for step, batch in enumerate(progress):
             batch  = {k: v.to(DEVICE) for k, v in batch.items()}
+            # Pass without labels so the model returns logits only,
+            # then compute the weighted loss manually.
+            labels = batch.pop("labels")
             output = model(**batch)
-
-            # divide loss before calling backward so accumulated gradients are
-            # equivalent to computing the gradient on the full effective batch at once
-            loss = output.loss / GRAD_ACCUM_STEPS
+            loss = loss_fct(output.logits, labels) / GRAD_ACCUM_STEPS
             loss.backward()
 
-            total_train_loss += output.loss.item()
+            total_train_loss += loss.item() * GRAD_ACCUM_STEPS
 
             # only update weights after accumulating GRAD_ACCUM_STEPS gradients
             if (step + 1) % GRAD_ACCUM_STEPS == 0:
@@ -221,12 +238,12 @@ def train():
                 optimizer.zero_grad()
 
             # show the per-step loss in the progress bar
-            progress.set_postfix({"loss": f"{output.loss.item():.4f}"})
+            progress.set_postfix({"loss": f"{loss.item() * GRAD_ACCUM_STEPS:.4f}"})
 
         avg_train_loss = total_train_loss / len(train_loader)
 
         # evaluate on the validation set after every epoch
-        val_loss, val_f1 = evaluate(model, val_loader, DEVICE)
+        val_loss, val_f1 = evaluate(model, val_loader, DEVICE, loss_fct)
 
         print(
             f"\nEpoch {epoch + 1}/{NUM_EPOCHS}"
