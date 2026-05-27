@@ -1,16 +1,20 @@
 """
-Fine-tune roberta-base on the Qbias AllSides dataset for 3-class bias classification.
+Fine-tune roberta-base on the Indian bias dataset for 3-class classification.
+
+Labels: bjp_aligned, opposition_aligned, neutral
+Training data: data/india_training/ (collected via src/collect_training_data.py)
 
 Run from the project root:
     python training/fine_tune.py
 
-Reads:  data/processed/train.csv, data/processed/val.csv
+Reads:  data/india_training/train.csv, data/india_training/val.csv
 Writes: models/bias_classifier/
 """
 
 import os
 import pandas as pd
 import torch
+import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from transformers import (
     AutoTokenizer,
@@ -20,24 +24,26 @@ from transformers import (
 )
 from torch.optim import AdamW
 from sklearn.metrics import f1_score
+from sklearn.utils.class_weight import compute_class_weight
+import numpy as np
 from tqdm import tqdm
 
 
 # ── hyperparameters ──────────────────────────────────────────────────────────
 
 MODEL_NAME       = "roberta-base"
-TRAIN_PATH       = "data/processed/train.csv"
-VAL_PATH         = "data/processed/val.csv"
+TRAIN_PATH       = "data/india_training/train.csv"
+VAL_PATH         = "data/india_training/val.csv"
+TEST_PATH        = "data/india_training/test.csv"
 MODEL_OUTPUT_DIR = "models/bias_classifier"
 
 BATCH_SIZE       = 16   # articles per GPU step
 GRAD_ACCUM_STEPS = 2    # step the optimiser every 2 batches → effective batch size = 32
 LEARNING_RATE    = 2e-5
-NUM_EPOCHS       = 3
+NUM_EPOCHS       = 8
 MAX_LENGTH       = 512  # RoBERTa's hard token limit
 
-# must match the label mapping used in 02_classifier_eval.ipynb
-LABEL2ID = {"left": 0, "center": 1, "right": 2}
+LABEL2ID = {"bjp_aligned": 0, "opposition_aligned": 1, "neutral": 2}
 ID2LABEL = {v: k for k, v in LABEL2ID.items()}
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -64,27 +70,25 @@ class BiasDataset(Dataset):
     def __getitem__(self, idx):
         row = self.df.iloc[idx]
 
-        # build the input string: headline + RoBERTa separator token + first 400 chars of body
-        # </s> is RoBERTa's separator - not [SEP], which is BERT-specific
-        text = f"{row['heading']} </s> {str(row['text'])[:400]}"
+        # India training data has a single 'text' column (full article body from GDELT).
+        # At inference time classifier.py uses "headline </s> body[:400]" - that mismatch
+        # is acceptable because the model learns from body text either way.
+        text = str(row["text"])[:512]
 
-        # tokenize: convert text to token IDs the model understands
-        # truncation=True: if text is longer than MAX_LENGTH tokens, cut it off
-        # padding is done per-batch by DataCollatorWithPadding, not here
         encoded = self.tokenizer(
             text,
             truncation=True,
             max_length=MAX_LENGTH,
         )
 
-        # attach the integer label so the model can compute cross-entropy loss
-        encoded["labels"] = int(row["label"])
+        # The CSV stores string labels ("bjp_aligned" etc.) - convert to integer for cross-entropy
+        encoded["labels"] = LABEL2ID[row["label"]]
         return encoded
 
 
 # ── evaluation function ───────────────────────────────────────────────────────
 
-def evaluate(model, loader, device):
+def evaluate(model, loader, device, loss_fct):
     """
     Run inference on a DataLoader. Returns (avg_loss, macro_f1).
 
@@ -99,22 +103,22 @@ def evaluate(model, loader, device):
     with torch.no_grad():  # skip gradient tracking - faster and uses less memory
         for batch in loader:
             batch  = {k: v.to(device) for k, v in batch.items()}
-            output = model(**batch)  # passing labels= makes the model compute loss internally
+            labels = batch.pop("labels")
+            output = model(**batch)
 
-            total_loss += output.loss.item()
+            total_loss += loss_fct(output.logits, labels).item()
 
             # argmax picks the class index with the highest score
             preds = output.logits.argmax(dim=-1)
             all_preds.extend(preds.cpu().tolist())
-            all_labels.extend(batch["labels"].cpu().tolist())
+            all_labels.extend(labels.cpu().tolist())
 
     avg_loss = total_loss / len(loader)
 
-    # average="macro" gives equal weight to each class regardless of sample count
-    # this is the right metric when class sizes are unequal (left >> center in our data)
-    macro_f1 = f1_score(all_labels, all_preds, average="macro")
+    macro_f1      = f1_score(all_labels, all_preds, average="macro")
+    per_class_f1  = f1_score(all_labels, all_preds, average=None, labels=[0, 1, 2])
 
-    return avg_loss, macro_f1
+    return avg_loss, macro_f1, per_class_f1
 
 
 # ── training ──────────────────────────────────────────────────────────────────
@@ -122,7 +126,7 @@ def evaluate(model, loader, device):
 def train():
     print(f"Device: {DEVICE}")
 
-    # load the pre-split CSVs from the notebook
+    # load the pre-split CSVs generated by collect_training_data.py
     print(f"\nLoading data...")
     train_df = pd.read_csv(TRAIN_PATH)
     val_df   = pd.read_csv(VAL_PATH)
@@ -148,6 +152,19 @@ def train():
     val_loader = DataLoader(
         val_dataset,   batch_size=BATCH_SIZE, shuffle=False, collate_fn=collator
     )
+
+    # Compute class weights to counteract the training imbalance.
+    # With 200 neutral / 88 bjp / 46 opposition the model would otherwise
+    # over-predict neutral. 'balanced' gives weight = n_total / (n_classes * n_class).
+    label_ids = [LABEL2ID[l] for l in train_df["label"]]
+    class_weights = compute_class_weight(
+        class_weight="balanced",
+        classes=np.array([0, 1, 2]),
+        y=np.array(label_ids),
+    )
+    class_weights_tensor = torch.tensor(class_weights, dtype=torch.float).to(DEVICE)
+    loss_fct = nn.CrossEntropyLoss(weight=class_weights_tensor)
+    print(f"\nClass weights: {dict(zip(ID2LABEL.values(), class_weights.round(2)))}")
 
     # load roberta-base with a fresh 3-class classification head on top
     # the head is a single linear layer: 768-dim RoBERTa output → 3 class scores
@@ -202,14 +219,14 @@ def train():
 
         for step, batch in enumerate(progress):
             batch  = {k: v.to(DEVICE) for k, v in batch.items()}
+            # Pass without labels so the model returns logits only,
+            # then compute the weighted loss manually.
+            labels = batch.pop("labels")
             output = model(**batch)
-
-            # divide loss before calling backward so accumulated gradients are
-            # equivalent to computing the gradient on the full effective batch at once
-            loss = output.loss / GRAD_ACCUM_STEPS
+            loss = loss_fct(output.logits, labels) / GRAD_ACCUM_STEPS
             loss.backward()
 
-            total_train_loss += output.loss.item()
+            total_train_loss += loss.item() * GRAD_ACCUM_STEPS
 
             # only update weights after accumulating GRAD_ACCUM_STEPS gradients
             if (step + 1) % GRAD_ACCUM_STEPS == 0:
@@ -221,18 +238,22 @@ def train():
                 optimizer.zero_grad()
 
             # show the per-step loss in the progress bar
-            progress.set_postfix({"loss": f"{output.loss.item():.4f}"})
+            progress.set_postfix({"loss": f"{loss.item() * GRAD_ACCUM_STEPS:.4f}"})
 
         avg_train_loss = total_train_loss / len(train_loader)
 
         # evaluate on the validation set after every epoch
-        val_loss, val_f1 = evaluate(model, val_loader, DEVICE)
+        val_loss, val_f1, val_per_class = evaluate(model, val_loader, DEVICE, loss_fct)
 
+        per_class_str = "  ".join(
+            f"{ID2LABEL[i]}: {val_per_class[i]:.3f}" for i in range(3)
+        )
         print(
             f"\nEpoch {epoch + 1}/{NUM_EPOCHS}"
             f" | Train loss: {avg_train_loss:.4f}"
             f" | Val loss: {val_loss:.4f}"
             f" | Val macro F1: {val_f1:.4f}"
+            f"\n  Per-class F1 - {per_class_str}"
         )
 
         # save checkpoint only if this epoch produced the best val macro F1 so far
@@ -251,6 +272,21 @@ def train():
     print(f"Training complete.")
     print(f"Best val macro F1: {best_val_f1:.4f}")
     print(f"Checkpoint saved to: {MODEL_OUTPUT_DIR}/")
+
+    # Final evaluation on the held-out test set using the best saved checkpoint.
+    # Val F1 is optimistic because the checkpoint was selected based on val performance.
+    # Test F1 is the honest generalization metric.
+    print(f"\nEvaluating best checkpoint on test set...")
+    test_df      = pd.read_csv(TEST_PATH)
+    test_dataset = BiasDataset(test_df, tokenizer)
+    test_loader  = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False, collate_fn=collator)
+
+    best_model = AutoModelForSequenceClassification.from_pretrained(MODEL_OUTPUT_DIR).to(DEVICE)
+    test_loss, test_f1, test_per_class = evaluate(best_model, test_loader, DEVICE, loss_fct)
+
+    print(f"Test macro F1: {test_f1:.4f}  |  Test loss: {test_loss:.4f}")
+    for i in range(3):
+        print(f"  {ID2LABEL[i]}: {test_per_class[i]:.4f}")
 
 
 if __name__ == "__main__":

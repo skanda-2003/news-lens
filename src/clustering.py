@@ -46,10 +46,11 @@ def _bias_distribution(
     cluster_id: int,
 ) -> dict[str, float]:
     """
-    Count left/centre/right bias labels for articles in cluster_id and return
-    them as percentages. Articles with no bias label are counted as "unknown".
+    Count bjp_aligned/opposition_aligned/neutral bias labels for articles in
+    cluster_id and return them as percentages. Articles with no bias label are
+    counted as "unknown".
     """
-    counts = {"left": 0, "centre": 0, "right": 0, "unknown": 0}
+    counts = {"bjp_aligned": 0, "opposition_aligned": 0, "neutral": 0, "unknown": 0}
 
     for label, meta in zip(labels, metadatas):
         if label != cluster_id:

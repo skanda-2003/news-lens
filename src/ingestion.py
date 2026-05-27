@@ -2,46 +2,82 @@ import re
 from datetime import datetime, timezone
 
 import feedparser
+import requests
 from newsapi import NewsApiClient
 from tqdm import tqdm
 
 from src.scraper import scrape_full_text
 
+# Outlets whose RSS feeds fail with SSL errors in WSL - pre-fetch content with
+# requests (verify=False) and pass the raw bytes to feedparser instead
+_SSL_PROBLEMATIC_FEEDS = {"the_wire", "republic_world"}
+
 
 # -- RSS feed config -----------------------------------------------------------
 
-# Each entry is (outlet_name, feed_url).
-# Reuters was originally included but shut down their public RSS feeds -
-# they still appear in the dataset via NewsAPI. Replaced with ABC News.
+# Each entry is (outlet_slug, feed_url). Test each URL before running - Indian
+# outlets occasionally change or remove their RSS endpoints.
 RSS_FEEDS = [
-    ("bbc",         "http://feeds.bbci.co.uk/news/rss.xml"),
-    ("abc_news",    "https://feeds.abcnews.com/abcnews/topstories"),
-    ("the_guardian","https://www.theguardian.com/world/rss"),
-    ("al_jazeera",  "https://www.aljazeera.com/xml/rss/all.xml"),
-    ("fox_news",    "https://feeds.foxnews.com/foxnews/latest"),
-    ("npr",         "https://feeds.npr.org/1001/rss.xml"),
+    ("the_hindu",       "https://www.thehindu.com/news/national/feeder/default.rss"),
+    ("ndtv",            "https://feeds.feedburner.com/ndtvnews-top-stories"),
+    ("times_of_india",  "https://timesofindia.indiatimes.com/rssfeedstopstories.cms"),
+    ("the_wire",        "https://thewire.in/feed"),
+    ("hindustan_times", "https://www.hindustantimes.com/feeds/rss/india-news/rssfeed.xml"),
+    ("india_today",     "https://www.indiatoday.in/rss/home"),
+    ("scroll",          "https://scroll.in/feed"),
+    ("indian_express",  "https://indianexpress.com/section/india/feed/"),
+    ("republic_world",  "https://www.republicworld.com/feeds/top-stories.xml"),
+    ("zee_news",        "https://zeenews.india.com/rss/india-national-news.xml"),
+    ("news18",          "https://www.news18.com/rss/india.xml"),
 ]
+
+
+# -- Outlet allowlist ----------------------------------------------------------
+
+# NewsAPI searches on Indian topics also return foreign coverage of India (Fox News,
+# BBC, Reuters, RT, etc.). These are not useful for an Indian media bias analysis,
+# so I drop any article whose outlet slug is not in this set.
+# RSS articles are always from known Indian outlets (the feeds are hardcoded above),
+# so the filter is only applied to the NewsAPI path.
+_INDIAN_OUTLETS = {
+    "the_hindu", "ndtv", "times_of_india", "the_wire", "hindustan_times",
+    "india_today", "scroll", "indian_express", "republic_world",
+    "zee_news", "news18", "opindia", "the_print", "newslaundry",
+    "businessline", "livemint", "pti", "ani", "the_quint",
+    "deccan_herald", "deccan_chronicle", "tribune_india", "firstpost",
+    "the_telegraph", "free_press_journal", "national_herald", "wire_science",
+}
 
 
 # -- Outlet normalisation ------------------------------------------------------
 
-# Maps substrings found in raw source names to a clean, consistent outlet slug.
-# NewsAPI returns names like "BBC News", "Fox News", "Reuters" - this converts them.
+# Maps substrings found in raw NewsAPI source names to a consistent outlet slug.
 _OUTLET_MAP = {
-    "bbc":              "bbc",
-    "reuters":          "reuters",
-    "guardian":         "the_guardian",
-    "al jazeera":       "al_jazeera",
-    "fox":              "fox_news",
-    "npr":              "npr",
-    "cnn":              "cnn",
-    "nbc":              "nbc_news",
-    "abc":              "abc_news",
-    "associated press": "ap",
-    "washington post":  "washington_post",
-    "new york times":   "new_york_times",
-    "politico":         "politico",
-    "the hill":         "the_hill",
+    "the hindu":           "the_hindu",
+    "ndtv":                "ndtv",
+    "times of india":      "times_of_india",
+    "the wire":            "the_wire",
+    "hindustan times":     "hindustan_times",
+    "india today":         "india_today",
+    "scroll":              "scroll",
+    "scroll.in":           "scroll",
+    "indian express":      "indian_express",
+    "the indian express":  "indian_express",
+    "republic world":      "republic_world",
+    "republic":            "republic_world",
+    "republicworld":       "republic_world",
+    "zee news":            "zee_news",
+    "zeenews":             "zee_news",
+    "news18":              "news18",
+    "opindia":             "opindia",
+    "the print":           "the_print",
+    "the wire science":    "the_wire",
+    "newslaundry":         "newslaundry",
+    "bbc":                 "bbc",
+    "reuters":             "reuters",
+    "associated press":    "ap",
+    "pti":                 "pti",
+    "ani":                 "ani",
 }
 
 def normalise_outlet(raw_name: str) -> str:
@@ -87,17 +123,23 @@ def fetch_newsapi_articles(topic: str, api_key: str, page_size: int = 20) -> lis
         if not url:
             continue
 
+        raw_outlet = item.get("source", {}).get("name", "unknown")
+        outlet = normalise_outlet(raw_outlet)
+
+        # Drop foreign outlets - NewsAPI returns international coverage of India
+        # (Fox News, BBC, Reuters, etc.) which we don't want in an Indian bias analysis.
+        if outlet not in _INDIAN_OUTLETS:
+            continue
+
         body, body_source = scrape_full_text(url)
 
         # If scraping failed, fall back to the truncated summary NewsAPI provides
         if body_source == "summary_only":
             body = item.get("description", "") or ""
 
-        raw_outlet = item.get("source", {}).get("name", "unknown")
-
         articles.append({
             "url":          url,
-            "outlet":       normalise_outlet(raw_outlet),
+            "outlet":       outlet,
             "headline":     item.get("title", ""),
             "body":         body,
             "body_source":  body_source,
@@ -152,7 +194,14 @@ def fetch_rss_articles() -> list[dict]:
     all_articles = []
 
     for outlet_slug, feed_url in RSS_FEEDS:
-        feed = feedparser.parse(feed_url)
+        if outlet_slug in _SSL_PROBLEMATIC_FEEDS:
+            try:
+                resp = requests.get(feed_url, timeout=10, verify=False)
+                feed = feedparser.parse(resp.content)
+            except Exception:
+                feed = feedparser.parse(feed_url)
+        else:
+            feed = feedparser.parse(feed_url)
 
         for entry in tqdm(feed.entries, desc=f"Scraping RSS [{outlet_slug}]"):
             url = entry.get("link", "")
@@ -183,3 +232,45 @@ def fetch_rss_articles() -> list[dict]:
             })
 
     return all_articles
+
+
+if __name__ == "__main__":
+    import os
+    from dotenv import load_dotenv
+    from src.db import get_connection, create_tables, insert_article
+
+    load_dotenv()
+    api_key = os.getenv("NEWSAPI_KEY", "")
+
+    TOPICS = [
+        "India Pakistan", "BJP Modi", "Indian economy", "India China",
+        "Kashmir", "communal violence India", "India democracy", "NEET India",
+    ]
+
+    conn = get_connection()
+    create_tables(conn)
+    total_inserted = 0
+
+    if api_key:
+        for topic in TOPICS:
+            print(f"\n--- NewsAPI: {topic} ---")
+            articles = fetch_newsapi_articles(topic, api_key, page_size=20)
+            for a in articles:
+                if insert_article(conn, a):
+                    total_inserted += 1
+        print(f"\nNewsAPI done. Inserted {total_inserted} articles.")
+    else:
+        print("No NEWSAPI_KEY in .env - skipping NewsAPI.")
+
+    print("\n--- RSS feeds ---")
+    rss_articles = fetch_rss_articles()
+    rss_inserted = 0
+    for a in rss_articles:
+        if insert_article(conn, a):
+            rss_inserted += 1
+    total_inserted += rss_inserted
+    print(f"RSS done. Inserted {rss_inserted} articles.")
+
+    total_in_db = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
+    print(f"\nTotal articles in DB: {total_in_db}")
+    conn.close()

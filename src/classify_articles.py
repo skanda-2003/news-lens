@@ -10,13 +10,16 @@ import sqlite3
 
 from tqdm import tqdm
 
-from src.classifier import predict_batch
+from src.classifier import predict_batch, CONFIDENCE_THRESHOLD
 from src.db import get_connection
 from src.chroma_store import get_collection
 
-# The classifier was trained on a US dataset that uses "center" - map to the
-# British spelling used everywhere else in this project
-LABEL_MAP = {"center": "centre", "left": "left", "right": "right"}
+# Labels match directly - no remapping needed
+LABEL_MAP = {
+    "bjp_aligned":        "bjp_aligned",
+    "opposition_aligned":  "opposition_aligned",
+    "neutral":             "neutral",
+}
 
 # How many articles to classify at once - 32 fits comfortably in VRAM
 BATCH_SIZE = 32
@@ -99,12 +102,12 @@ def run(overwrite: bool = False) -> None:
     # Summary
     total = conn.execute("SELECT COUNT(*) FROM articles WHERE bias_label IS NOT NULL").fetchone()[0]
     trusted = conn.execute("SELECT COUNT(*) FROM articles WHERE bias_trusted = 1").fetchone()[0]
-    left   = conn.execute("SELECT COUNT(*) FROM articles WHERE bias_label = 'left'").fetchone()[0]
-    centre = conn.execute("SELECT COUNT(*) FROM articles WHERE bias_label = 'centre'").fetchone()[0]
-    right  = conn.execute("SELECT COUNT(*) FROM articles WHERE bias_label = 'right'").fetchone()[0]
+    bjp  = conn.execute("SELECT COUNT(*) FROM articles WHERE bias_label = 'bjp_aligned'").fetchone()[0]
+    opp  = conn.execute("SELECT COUNT(*) FROM articles WHERE bias_label = 'opposition_aligned'").fetchone()[0]
+    neu  = conn.execute("SELECT COUNT(*) FROM articles WHERE bias_label = 'neutral'").fetchone()[0]
 
-    print(f"\nDone. {total} articles classified, {trusted} trusted (confidence >= 0.85).")
-    print(f"Labels: left={left}, centre={centre}, right={right}")
+    print(f"\nDone. {total} articles classified, {trusted} trusted (confidence >= {CONFIDENCE_THRESHOLD}).")
+    print(f"Labels: bjp_aligned={bjp}, opposition_aligned={opp}, neutral={neu}")
 
     conn.close()
 

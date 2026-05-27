@@ -8,13 +8,13 @@ They never load the model themselves - they call predict() or predict_batch().
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-# derived empirically from the confidence error-rate table in 02_classifier_eval.ipynb
-# below this threshold, error rate stays above 29% - not trustworthy enough for a hard label
-CONFIDENCE_THRESHOLD = 0.85
+# re-derived for the Indian model (8-epoch, val macro F1 0.845, 334 training samples)
+# at 0.5 the model is at least 17pp above random (1/3) - empirically the useful cutoff
+CONFIDENCE_THRESHOLD = 0.5
 
 MODEL_PATH = "models/bias_classifier"
 
-LABEL2ID = {"left": 0, "center": 1, "right": 2}
+LABEL2ID = {"bjp_aligned": 0, "opposition_aligned": 1, "neutral": 2}
 ID2LABEL  = {v: k for k, v in LABEL2ID.items()}
 
 # module-level cache so the model is only loaded once per process
@@ -36,12 +36,12 @@ def _load_model():
 
 def _build_input(headline: str, body: str) -> str:
     """
-    Build the RoBERTa input string from headline and body text.
-
-    Uses the same format as training: headline + </s> separator + first 400 chars of body.
-    </s> is RoBERTa's separator token - not [SEP], which is BERT-specific.
+    Build the RoBERTa input string. Uses body text only to match the training format -
+    training articles from GDELT/theprint don't have a separate headline column, so
+    training was done on plain body text. Keeping the same format at inference avoids
+    a train/serve distribution mismatch.
     """
-    return f"{headline} </s> {body[:400]}"
+    return body[:500]
 
 
 def predict(headline: str, body: str) -> dict:
@@ -54,7 +54,7 @@ def predict(headline: str, body: str) -> dict:
 
     Returns:
         {
-            "label":      "left" | "center" | "right",
+            "label":      "bjp_aligned" | "opposition_aligned" | "neutral",
             "confidence": float (0-1),
             "trusted":    bool  (True if confidence >= CONFIDENCE_THRESHOLD)
         }

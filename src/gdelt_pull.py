@@ -1,13 +1,12 @@
 """
 GDELT historical data pull for drift monitoring.
 
-GDELT (Global Database of Events, Language and Tone) archives news from thousands
-of outlets worldwide. I use it here to get historical articles spread over 6 months -
-far more than NewsAPI's one-month limit on the free tier.
+GDELT archives news from thousands of outlets worldwide. I use it to get
+historical articles spread over 6 months for Indian outlets - far more than
+NewsAPI's one-month free-tier limit.
 
-Each GDELT GKG snapshot covers one 15-minute window. I query 3 snapshots per month
-(spread across different weeks) to get a representative sample for each month.
-That gives 18 total queries for a 6-month lookback.
+Each GDELT GKG snapshot covers one 15-minute window. I query 3 snapshots per
+month spread across different weeks, giving 18 total queries for a 6-month window.
 """
 
 import os
@@ -24,15 +23,19 @@ from src.scraper import scrape_full_text
 # Where to save the raw GDELT CSVs before inserting into SQLite
 GDELT_DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "gdelt")
 
-# Domains to filter GDELT results to - these map to our tracked outlets
+# Indian outlet domains to filter GDELT results to
 TARGET_DOMAINS = {
-    "bbc.co.uk":        "bbc",
-    "bbc.com":          "bbc",
-    "foxnews.com":      "fox_news",
-    "theguardian.com":  "the_guardian",
-    "aljazeera.com":    "al_jazeera",
-    "npr.org":          "npr",
-    "abcnews.go.com":   "abc_news",
+    "thehindu.com":                  "the_hindu",
+    "ndtv.com":                      "ndtv",
+    "timesofindia.indiatimes.com":   "times_of_india",
+    "thewire.in":                    "the_wire",
+    "hindustantimes.com":            "hindustan_times",
+    "indianexpress.com":             "indian_express",
+    "scroll.in":                     "scroll",
+    "republicworld.com":             "republic_world",
+    "zeenews.india.com":             "zee_news",
+    "news18.com":                    "news18",
+    "indiatoday.in":                 "india_today",
 }
 
 
@@ -198,3 +201,9 @@ def ingest_gdelt_csv(csv_path: str, scrape: bool = True) -> None:
         skipped += int(not success)
 
     print(f"Inserted: {inserted} | Skipped (duplicates): {skipped}")
+
+
+if __name__ == "__main__":
+    csv_path = pull_gdelt_historical(months_back=6, snapshots_per_month=3)
+    if csv_path:
+        ingest_gdelt_csv(csv_path, scrape=True)

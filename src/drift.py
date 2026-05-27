@@ -18,8 +18,11 @@ import pandas as pd
 # Anchor path to this file's location so it works from any working directory
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "newslens.db")
 
-# The four outlets that have GDELT historical data - only these can be shown on a time axis
-DRIFT_OUTLETS = ["bbc", "npr", "fox_news", "the_guardian"]
+# Outlets with enough GDELT historical data for drift analysis.
+# Chosen based on actual article counts: hindustan_times=72, times_of_india=56,
+# indian_express=36, the_hindu=29 in the GDELT pull. the_wire and republic_world
+# had 0 and 2 articles respectively - not enough for any meaningful drift signal.
+DRIFT_OUTLETS = ["hindustan_times", "times_of_india", "indian_express", "the_hindu"]
 
 
 def parse_date(date_str: str) -> datetime | None:
@@ -82,8 +85,8 @@ def load_drift_data(outlets: list[str] = DRIFT_OUTLETS) -> pd.DataFrame:
     df = df.dropna(subset=["date"])
 
     # Exclude articles before November 2025 - the start of the GDELT historical window.
-    # A few isolated BBC RSS articles from Jan/Apr 2025 exist in the DB but are not
-    # representative historical data; using them as a baseline produces misleading results.
+    # Old US pipeline articles from before the India switch exist in the DB but are not
+    # representative; filtering them out keeps the baseline clean.
     df = df[df["date"] >= datetime(2025, 11, 1)]
 
     # Add a year-month label for grouping: "2025-11", "2026-05", etc.
@@ -97,7 +100,7 @@ def monthly_bias_proportions(df: pd.DataFrame) -> pd.DataFrame:
     Group articles by outlet and month, then compute the proportion of each bias label.
 
     Returns a DataFrame with columns:
-      outlet, month, n_articles, left_pct, centre_pct, right_pct
+      outlet, month, n_articles, bjp_aligned_pct, opposition_aligned_pct, neutral_pct
 
     This is the core data structure for the drift time series charts.
     """
@@ -105,17 +108,17 @@ def monthly_bias_proportions(df: pd.DataFrame) -> pd.DataFrame:
 
     for (outlet, month), group in df.groupby(["outlet", "month"]):
         n = len(group)
-        left_pct   = (group["bias_label"] == "left").sum()   / n * 100
-        centre_pct = (group["bias_label"] == "centre").sum() / n * 100
-        right_pct  = (group["bias_label"] == "right").sum()  / n * 100
+        bjp_pct = (group["bias_label"] == "bjp_aligned").sum()        / n * 100
+        opp_pct = (group["bias_label"] == "opposition_aligned").sum() / n * 100
+        neu_pct = (group["bias_label"] == "neutral").sum()             / n * 100
 
         rows.append({
-            "outlet":     outlet,
-            "month":      month,
-            "n_articles": n,
-            "left_pct":   round(left_pct,   1),
-            "centre_pct": round(centre_pct, 1),
-            "right_pct":  round(right_pct,  1),
+            "outlet":                outlet,
+            "month":                 month,
+            "n_articles":            n,
+            "bjp_aligned_pct":       round(bjp_pct, 1),
+            "opposition_aligned_pct": round(opp_pct, 1),
+            "neutral_pct":           round(neu_pct, 1),
         })
 
     result = pd.DataFrame(rows).sort_values(["outlet", "month"]).reset_index(drop=True)
@@ -147,11 +150,11 @@ def compute_baselines(monthly_df: pd.DataFrame, n_months: int = 2) -> dict:
             continue
 
         baselines[outlet] = {
-            "left_mean":          baseline_rows["left_pct"].mean(),
-            "centre_mean":        baseline_rows["centre_pct"].mean(),
-            "right_mean":         baseline_rows["right_pct"].mean(),
-            "n_baseline_months":  len(baseline_rows),
-            "baseline_months":    baseline_rows["month"].tolist(),
+            "bjp_aligned_mean":        baseline_rows["bjp_aligned_pct"].mean(),
+            "opposition_aligned_mean": baseline_rows["opposition_aligned_pct"].mean(),
+            "neutral_mean":            baseline_rows["neutral_pct"].mean(),
+            "n_baseline_months":       len(baseline_rows),
+            "baseline_months":         baseline_rows["month"].tolist(),
         }
 
     return baselines
@@ -190,7 +193,7 @@ def detect_drift_events(
             # Skip months with too few articles to draw conclusions from
             if row["n_articles"] < min_articles:
                 continue
-            for label in ["left", "centre", "right"]:
+            for label in ["bjp_aligned", "opposition_aligned", "neutral"]:
                 observed  = row[f"{label}_pct"]
                 base_mean = baseline[f"{label}_mean"]
                 deviation = abs(observed - base_mean)
