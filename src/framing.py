@@ -120,7 +120,7 @@ def extract_framing(limit: int = None) -> None:
     conn = get_connection()
 
     # Only fetch articles where framing hasn't been attempted yet
-    # framing_parsed IS NULL means we've never run framing on this article
+    # framing_parsed IS NULL means I haven't run framing on this article yet
     query = """
         SELECT id, headline, body
         FROM articles

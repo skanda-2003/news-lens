@@ -71,7 +71,7 @@ def _sample_dates(months_back: int = 6, snapshots_per_month: int = 3) -> list[st
 
 def _query_gdelt_snapshot(date_str: str) -> pd.DataFrame | None:
     """
-    Query GDELT GKG for one snapshot on a given date, filtered to our target outlets.
+    Query GDELT GKG for one snapshot on a given date, filtered to the target outlets.
 
     Returns a filtered DataFrame or None if the query fails.
     """
@@ -83,7 +83,7 @@ def _query_gdelt_snapshot(date_str: str) -> pd.DataFrame | None:
         if df is None or df.empty:
             return None
 
-        # Filter to only rows where the article URL contains one of our target domains
+        # Filter to only rows where the article URL contains one of the target domains
         domain_pattern = "|".join(TARGET_DOMAINS.keys())
         mask = df["DocumentIdentifier"].str.contains(domain_pattern, case=False, na=False)
         filtered = df[mask].copy()
@@ -107,7 +107,7 @@ def _detect_outlet(url: str) -> str:
 
 def pull_gdelt_historical(months_back: int = 6, snapshots_per_month: int = 3) -> str:
     """
-    Pull historical GDELT articles for our target outlets and save to CSV.
+    Pull historical GDELT articles for the target outlets and save to CSV.
 
     Returns the path to the saved CSV file.
     """
