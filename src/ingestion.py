@@ -195,3 +195,45 @@ def fetch_rss_articles() -> list[dict]:
             })
 
     return all_articles
+
+
+if __name__ == "__main__":
+    import os
+    from dotenv import load_dotenv
+    from src.db import get_connection, create_tables, insert_article
+
+    load_dotenv()
+    api_key = os.getenv("NEWSAPI_KEY", "")
+
+    TOPICS = [
+        "India Pakistan", "BJP Modi", "Indian economy", "India China",
+        "Kashmir", "communal violence India", "India democracy", "NEET India",
+    ]
+
+    conn = get_connection()
+    create_tables(conn)
+    total_inserted = 0
+
+    if api_key:
+        for topic in TOPICS:
+            print(f"\n--- NewsAPI: {topic} ---")
+            articles = fetch_newsapi_articles(topic, api_key, page_size=20)
+            for a in articles:
+                if insert_article(conn, a):
+                    total_inserted += 1
+        print(f"\nNewsAPI done. Inserted {total_inserted} articles.")
+    else:
+        print("No NEWSAPI_KEY in .env - skipping NewsAPI.")
+
+    print("\n--- RSS feeds ---")
+    rss_articles = fetch_rss_articles()
+    rss_inserted = 0
+    for a in rss_articles:
+        if insert_article(conn, a):
+            rss_inserted += 1
+    total_inserted += rss_inserted
+    print(f"RSS done. Inserted {rss_inserted} articles.")
+
+    total_in_db = conn.execute("SELECT COUNT(*) FROM articles").fetchone()[0]
+    print(f"\nTotal articles in DB: {total_in_db}")
+    conn.close()

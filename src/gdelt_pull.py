@@ -201,3 +201,9 @@ def ingest_gdelt_csv(csv_path: str, scrape: bool = True) -> None:
         skipped += int(not success)
 
     print(f"Inserted: {inserted} | Skipped (duplicates): {skipped}")
+
+
+if __name__ == "__main__":
+    csv_path = pull_gdelt_historical(months_back=6, snapshots_per_month=3)
+    if csv_path:
+        ingest_gdelt_csv(csv_path, scrape=True)
