@@ -29,7 +29,7 @@ import numpy as np
 from tqdm import tqdm
 
 
-# ── hyperparameters ──────────────────────────────────────────────────────────
+# --- hyperparameters ---
 
 MODEL_NAME       = "roberta-base"
 TRAIN_PATH       = "data/india_training/train.csv"
@@ -49,7 +49,7 @@ ID2LABEL = {v: k for k, v in LABEL2ID.items()}
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 
-# ── dataset class ─────────────────────────────────────────────────────────────
+# --- dataset class ---
 
 class BiasDataset(Dataset):
     """
@@ -86,7 +86,7 @@ class BiasDataset(Dataset):
         return encoded
 
 
-# ── evaluation function ───────────────────────────────────────────────────────
+# --- evaluation function ---
 
 def evaluate(model, loader, device, loss_fct):
     """
@@ -108,7 +108,6 @@ def evaluate(model, loader, device, loss_fct):
 
             total_loss += loss_fct(output.logits, labels).item()
 
-            # argmax picks the class index with the highest score
             preds = output.logits.argmax(dim=-1)
             all_preds.extend(preds.cpu().tolist())
             all_labels.extend(labels.cpu().tolist())
@@ -121,7 +120,7 @@ def evaluate(model, loader, device, loss_fct):
     return avg_loss, macro_f1, per_class_f1
 
 
-# ── training ──────────────────────────────────────────────────────────────────
+# --- training ---
 
 def train():
     print(f"Device: {DEVICE}")
@@ -237,7 +236,6 @@ def train():
                 scheduler.step()
                 optimizer.zero_grad()
 
-            # show the per-step loss in the progress bar
             progress.set_postfix({"loss": f"{loss.item() * GRAD_ACCUM_STEPS:.4f}"})
 
         avg_train_loss = total_train_loss / len(train_loader)

@@ -11,7 +11,7 @@ def scrape_full_text(url: str) -> tuple[str, str]:
       "scraped"      - full text retrieved successfully
       "summary_only" - both scrapers failed, caller should use the summary instead
     """
-    # ── Attempt 1: newspaper3k ────────────────────────────────────────────────
+    # --- Attempt 1: newspaper3k ---
     try:
         article = Article(url)
 
@@ -30,7 +30,7 @@ def scrape_full_text(url: str) -> tuple[str, str]:
         # - don't crash, just fall through to trafilatura
         pass
 
-    # ── Attempt 2: trafilatura (fallback) ─────────────────────────────────────
+    # --- Attempt 2: trafilatura (fallback) ---
     try:
         # fetch_url downloads the raw HTML
         html = trafilatura.fetch_url(url)
@@ -45,7 +45,7 @@ def scrape_full_text(url: str) -> tuple[str, str]:
     except Exception:
         pass
 
-    # ── Both failed ───────────────────────────────────────────────────────────
+    # --- Both failed ---
     # Return empty string - the caller (ingestion.py) will use the summary instead
     # and record body_source = "summary_only" in the database
     return "", "summary_only"

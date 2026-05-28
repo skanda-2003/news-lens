@@ -59,7 +59,7 @@ def page_live_feed():
     outlets = _load_outlets()
     topics  = _load_topics()
 
-    # ── Filters ───────────────────────────────────────────────────────────────
+    # --- Filters ---
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         topic_sel = st.selectbox("Topic", ["All topics"] + topics)
@@ -79,7 +79,7 @@ def page_live_feed():
         tuple(source_sel),
     )
 
-    # ── Date range slider ─────────────────────────────────────────────────────
+    # --- Date range slider ---
     # GDELT 14-digit timestamps (20260403234500) fail fromisoformat - silently skip those
     dates = [d for a in articles if (d := _parse_date(a.get("published_at"))) is not None]
 
@@ -97,7 +97,7 @@ def page_live_feed():
             and date_range[0] <= d <= date_range[1]
         ]
 
-    # ── Summary row ───────────────────────────────────────────────────────────
+    # --- Summary row ---
     total     = len(articles)
     trusted   = sum(1 for a in articles if a.get("bias_trusted"))
     uncertain = total - trusted
@@ -108,7 +108,7 @@ def page_live_feed():
     m2.metric("Trusted predictions", trusted)
     m3.metric("Uncertain", uncertain)
 
-    # ── Bias distribution bar ─────────────────────────────────────────────────
+    # --- Bias distribution bar ---
     if articles:
         counts = {
             "bjp_aligned":       sum(1 for a in articles if a.get("bias_label") == "bjp_aligned"),
@@ -142,7 +142,7 @@ def page_live_feed():
         st.info("No articles match these filters.")
         return
 
-    # ── Pagination ────────────────────────────────────────────────────────────
+    # --- Pagination ---
     total_pages = max(1, (len(articles) + PAGE_SIZE - 1) // PAGE_SIZE)
 
     # Reset to page 0 when filters change so I don't land on a nonexistent page
@@ -166,7 +166,7 @@ def page_live_feed():
             st.session_state.feed_page += 1
             st.rerun()
 
-    # ── Article cards ─────────────────────────────────────────────────────────
+    # --- Article cards ---
     for article in page_articles:
         headline   = article.get("headline") or "No headline"
         outlet     = (article.get("outlet") or "unknown").upper()

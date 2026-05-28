@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 DB_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "newslens.db")
 
 
-# ── Connection ────────────────────────────────────────────────────────────────
+# --- Connection ---
 
 def get_connection() -> sqlite3.Connection:
     """Return a connection to the SQLite database."""
@@ -20,7 +20,7 @@ def get_connection() -> sqlite3.Connection:
     return conn
 
 
-# ── Schema ────────────────────────────────────────────────────────────────────
+# --- Schema ---
 
 def create_tables(conn: sqlite3.Connection) -> None:
     """Create the articles table if it doesn't already exist."""
@@ -59,7 +59,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
-# ── Insert ────────────────────────────────────────────────────────────────────
+# --- Insert ---
 
 def insert_article(conn: sqlite3.Connection, article: dict) -> bool:
     """
@@ -100,7 +100,7 @@ def insert_article(conn: sqlite3.Connection, article: dict) -> bool:
         return False
 
 
-# ── Query ─────────────────────────────────────────────────────────────────────
+# --- Query ---
 
 def get_articles(conn: sqlite3.Connection, topic: str = None, outlet: str = None) -> list:
     """
@@ -110,7 +110,6 @@ def get_articles(conn: sqlite3.Connection, topic: str = None, outlet: str = None
     If outlet is provided, only articles from that outlet are returned.
     Both filters can be combined.
     """
-    # Start with a query that selects everything
     query = "SELECT * FROM articles WHERE 1=1"
     params = []
 

@@ -156,7 +156,7 @@ def page_framing_explorer():
         st.info("No framing data found for this topic.")
         return
 
-    # ── Outlet filter ─────────────────────────────────────────────────────────
+    # --- Outlet filter ---
     all_outlets = sorted({a["outlet"] for a in articles if a.get("outlet")})
     outlet_filter = st.multiselect("Filter outlets", all_outlets, placeholder="All outlets")
     if outlet_filter:
@@ -165,7 +165,7 @@ def page_framing_explorer():
     st.caption(f"{len(articles)} articles with framing data")
     st.divider()
 
-    # ── Three global phrase charts ────────────────────────────────────────────
+    # --- Three global phrase charts ---
     c1, c2, c3 = st.columns(3)
 
     with c1:
@@ -192,12 +192,12 @@ def page_framing_explorer():
         else:
             st.info("No solution data.")
 
-    # ── Coverage table ────────────────────────────────────────────────────────
+    # --- Coverage table ---
     st.divider()
     st.subheader("Coverage by outlet")
     st.dataframe(_coverage_table(articles), use_container_width=True, hide_index=True)
 
-    # ── Outlet-level framing breakdown ────────────────────────────────────────
+    # --- Outlet-level framing breakdown ---
     st.divider()
     st.subheader("Framing by outlet")
     st.caption(

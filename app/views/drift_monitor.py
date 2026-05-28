@@ -117,7 +117,7 @@ def page_drift_monitor():
         st.warning("No drift data available. Run the GDELT ingestion pipeline first.")
         return
 
-    # ── All-outlets overview table ────────────────────────────────────────────
+    # --- All-outlets overview table ---
     st.subheader("All outlets overview")
     summary_rows = []
     for o in sorted(monthly["outlet"].unique()):
@@ -134,7 +134,7 @@ def page_drift_monitor():
     st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
     st.divider()
 
-    # ── Per-outlet detail ─────────────────────────────────────────────────────
+    # --- Per-outlet detail ---
     available = sorted(monthly["outlet"].unique().tolist())
     outlet    = st.selectbox("Select outlet", available)
 
@@ -145,7 +145,7 @@ def page_drift_monitor():
             "Need at least 3 months of articles."
         )
 
-    # ── Chart ─────────────────────────────────────────────────────────────────
+    # --- Chart ---
     fig = _chart(outlet, monthly, baselines, events)
     if fig:
         st.plotly_chart(fig, use_container_width=True)
@@ -160,7 +160,7 @@ def page_drift_monitor():
 
     st.divider()
 
-    # ── Drift events table ────────────────────────────────────────────────────
+    # --- Drift events table ---
     st.subheader("Drift events")
 
     outlet_events = (

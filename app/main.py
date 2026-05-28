@@ -25,7 +25,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── Sidebar navigation ────────────────────────────────────────────────────────
+# --- Sidebar navigation ---
 @st.cache_data(ttl=3600)
 def _sidebar_stats():
     conn = get_connection()
@@ -48,7 +48,7 @@ with st.sidebar:
     st.divider()
     st.markdown("[GitHub](https://github.com/skanda-2003/news-lens)")
 
-# ── Page router ───────────────────────────────────────────────────────────────
+# --- Page router ---
 PAGES = {
     "Live Feed":        page_live_feed,
     "Narrative Map":    page_narrative_map,

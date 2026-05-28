@@ -99,7 +99,7 @@ def page_narrative_map():
     best_k    = result["best_k"]
     silhouette = result["best_silhouette"]
 
-    # ── Metrics ───────────────────────────────────────────────────────────────
+    # --- Metrics ---
     method_str = f"KMeans k={best_k}" if method == "kmeans" else "DBSCAN"
     sil_str    = f"{silhouette:.3f}" if silhouette is not None else "N/A"
 
@@ -110,7 +110,7 @@ def page_narrative_map():
 
     st.divider()
 
-    # ── Scatter plot ──────────────────────────────────────────────────────────
+    # --- Scatter plot ---
     unique_labels = sorted(set(labels))
     traces = []
 
@@ -144,7 +144,7 @@ def page_narrative_map():
     )
     st.plotly_chart(fig, use_container_width=True)
 
-    # ── Per-cluster breakdown ─────────────────────────────────────────────────
+    # --- Per-cluster breakdown ---
     st.subheader("Cluster breakdown")
     for cid, cluster in clusters.items():
         if cid == -1:

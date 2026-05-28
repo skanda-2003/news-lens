@@ -85,8 +85,7 @@ def load_drift_data(outlets: list[str] = DRIFT_OUTLETS) -> pd.DataFrame:
     df = df.dropna(subset=["date"])
 
     # Exclude articles before November 2025 - the start of the GDELT historical window.
-    # Old US pipeline articles from before the India switch exist in the DB but are not
-    # representative; filtering them out keeps the baseline clean.
+    # Articles before this date predate the India focus and skew the baseline.
     df = df[df["date"] >= datetime(2025, 11, 1)]
 
     # Add a year-month label for grouping: "2025-11", "2026-05", etc.

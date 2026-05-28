@@ -264,7 +264,5 @@ findings.
 Entman, R. M. (1993). Framing: Toward clarification of a fractured paradigm. *Journal of
 Communication*, 43(4), 51-58.
 
-Haak, B., & Schaer, P. (2023). Automated news framing detection.
-
 Reporters Without Borders. (2024). *India - RSF Press Freedom Index*.
 rsf.org/en/country/india

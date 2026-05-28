@@ -254,7 +254,7 @@ def collect() -> None:
 
     all_rows: list[dict] = []
 
-    # ── Phase 1: GDELT for neutral ────────────────────────────────────────────
+    # --- Phase 1: GDELT for neutral ---
     print("=== Phase 1: GDELT neutral collection ===")
     dates = _sample_dates()
     print(f"Querying {len(dates)} snapshots over {GDELT_MONTHS_BACK} months...\n")
@@ -294,13 +294,13 @@ def collect() -> None:
 
     print(f"\nNeutral collected: {neutral_count}")
 
-    # ── Phase 2: RSS for bjp_aligned ─────────────────────────────────────────
+    # --- Phase 2: RSS for bjp_aligned ---
     print("\n=== Phase 2: RSS bjp_aligned collection ===")
     bjp_rows = _collect_from_rss("bjp_aligned", TARGET_PER_LABEL)
     print(f"bjp_aligned collected: {len(bjp_rows)}")
     all_rows.extend(bjp_rows)
 
-    # ── Phase 3: Scrape opposition outlets (theprint, thewire, scroll) ───────
+    # --- Phase 3: Scrape opposition outlets (theprint, thewire, scroll) ---
     print("\n=== Phase 3: opposition_aligned collection (theprint + thewire + scroll) ===")
     opp_rows: list[dict] = []
     for source in OPPOSITION_SOURCES:
@@ -311,7 +311,7 @@ def collect() -> None:
     print(f"opposition_aligned collected: {len(opp_rows)}")
     all_rows.extend(opp_rows)
 
-    # ── Save and split ────────────────────────────────────────────────────────
+    # --- Save and split ---
     if not all_rows:
         print("\nNo articles collected.")
         return

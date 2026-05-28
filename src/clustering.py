@@ -9,7 +9,7 @@ from src.chroma_store import get_collection, get_by_topic
 SILHOUETTE_FALLBACK_THRESHOLD = 0.3
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# --- Helpers ---
 
 def _representative_headlines(
     embeddings: np.ndarray,
@@ -23,19 +23,15 @@ def _representative_headlines(
     cluster_id. These are the most "central" articles in that cluster - the
     ones that best represent what the cluster is about.
     """
-    # Boolean mask: True for every article that belongs to this cluster
     mask = labels == cluster_id
     cluster_embeddings = embeddings[mask]
     cluster_headlines = [h for h, m in zip(headlines, mask) if m]
 
-    # Centroid = the average position of all points in this cluster
     centroid = cluster_embeddings.mean(axis=0)
 
     # Euclidean distance from each article to the centroid
     distances = np.linalg.norm(cluster_embeddings - centroid, axis=1)
 
-    # argsort gives indices that would sort the array smallest to largest
-    # take the first n - those are the closest articles to the centroid
     closest_indices = np.argsort(distances)[:n]
     return [cluster_headlines[i] for i in closest_indices]
 
@@ -68,7 +64,7 @@ def _bias_distribution(
     return {k: round(v / total * 100, 1) for k, v in counts.items()}
 
 
-# ── KMeans ────────────────────────────────────────────────────────────────────
+# --- KMeans ---
 
 def _run_kmeans(
     embeddings: np.ndarray,
@@ -112,7 +108,7 @@ def _run_kmeans(
     return results
 
 
-# ── DBSCAN ────────────────────────────────────────────────────────────────────
+# --- DBSCAN ---
 
 def _run_dbscan(embeddings: np.ndarray) -> np.ndarray:
     """
@@ -145,7 +141,7 @@ def _run_dbscan(embeddings: np.ndarray) -> np.ndarray:
     return labels
 
 
-# ── Main entry point ──────────────────────────────────────────────────────────
+# --- Main entry point ---
 
 def cluster_topic(
     topic: str,
@@ -184,7 +180,7 @@ def cluster_topic(
     n = len(headlines)
     print(f"Clustering {n} articles for topic '{topic}'")
 
-    # ── Run KMeans for each k ────────────────────────────────────────────────
+    # --- Run KMeans for each k ---
     print("Running KMeans...")
     kmeans_results = _run_kmeans(embeddings, k_values)
 
@@ -197,7 +193,7 @@ def cluster_topic(
     best_k = max(kmeans_results, key=lambda k: kmeans_results[k]["silhouette"])
     best_silhouette = kmeans_results[best_k]["silhouette"]
 
-    # ── Choose method ────────────────────────────────────────────────────────
+    # --- Choose method ---
     if best_silhouette >= SILHOUETTE_FALLBACK_THRESHOLD:
         method = "kmeans"
         labels = kmeans_results[best_k]["labels"]
@@ -217,7 +213,7 @@ def cluster_topic(
         else:
             best_silhouette = None
 
-    # ── Per-cluster summaries ────────────────────────────────────────────────
+    # --- Per-cluster summaries ---
     cluster_ids = sorted(set(labels))
     clusters = {}
 

@@ -220,7 +220,7 @@ def page_synthesis():
         st.info("Select a topic and click Synthesise. This calls a local Ollama model and takes 10-20 seconds.")
         return
 
-    # ── Ollama health check ───────────────────────────────────────────────────
+    # --- Ollama health check ---
     if not _ollama_running():
         st.error(
             "Ollama is not running. Start it with:\n\n"
@@ -229,7 +229,7 @@ def page_synthesis():
         )
         return
 
-    # ── Fetch articles ────────────────────────────────────────────────────────
+    # --- Fetch articles ---
     articles_by_label = _get_synthesis_articles(topic)
     total_articles    = sum(len(v) for v in articles_by_label.values())
 
@@ -244,7 +244,7 @@ def page_synthesis():
             "The synthesis will be limited - framing comparison needs multiple perspectives."
         )
 
-    # ── Run synthesis ─────────────────────────────────────────────────────────
+    # --- Run synthesis ---
     with st.spinner("Calling Ollama... this takes 10-20 seconds"):
         try:
             synthesis, raw_output = _run_synthesis(topic, json.dumps(articles_by_label))
@@ -257,7 +257,7 @@ def page_synthesis():
         st.code(raw_output)
         return
 
-    # ── Section 1: What happened ──────────────────────────────────────────────
+    # --- Section 1: What happened ---
     st.divider()
     st.subheader("What happened")
 
@@ -275,7 +275,7 @@ def page_synthesis():
     if framing_note:
         st.caption(f"Framing difference: {framing_note}")
 
-    # ── Section 2: How it was framed ──────────────────────────────────────────
+    # --- Section 2: How it was framed ---
     st.divider()
     st.subheader("How it was framed")
 
@@ -308,7 +308,7 @@ def page_synthesis():
                     if victim:
                         st.caption(f"Victim: {victim}")
 
-    # ── Section 3: Framing at a glance ────────────────────────────────────────
+    # --- Section 3: Framing at a glance ---
     st.divider()
     st.subheader("Framing at a glance")
 

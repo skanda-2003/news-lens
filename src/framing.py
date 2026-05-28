@@ -35,7 +35,7 @@ Article:
 {article_text}"""
 
 
-# ── Ollama health check ───────────────────────────────────────────────────────
+# --- Ollama health check ---
 
 def check_ollama_running() -> None:
     """Raise RuntimeError if Ollama is not reachable at localhost:11434."""
@@ -49,7 +49,7 @@ def check_ollama_running() -> None:
         )
 
 
-# ── Ollama call ───────────────────────────────────────────────────────────────
+# --- Ollama call ---
 
 def call_ollama(article_text: str) -> str:
     """Send article text to Ollama and return the raw string response."""
@@ -74,7 +74,7 @@ def call_ollama(article_text: str) -> str:
     return response.json()["response"]
 
 
-# ── JSON validation ───────────────────────────────────────────────────────────
+# --- JSON validation ---
 
 def parse_framing_response(raw: str) -> dict | None:
     """Parse and validate Ollama's JSON output. Returns None on any failure."""
@@ -107,7 +107,7 @@ def log_failure(article_id: int, raw: str) -> None:
         f.write("\n\n")
 
 
-# ── Main extraction loop ──────────────────────────────────────────────────────
+# --- Main extraction loop ---
 
 def extract_framing(limit: int = None) -> None:
     """
