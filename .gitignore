@@ -14,8 +14,13 @@ __pycache__/
 # Jupyter checkpoints
 .ipynb_checkpoints/
 
-# Data files (too large for git)
-data/
+# Data files (too large for git) - DB and vector store committed for HF Spaces deploy
+data/*
+!data/newslens.db
+!data/chroma_store/
+
+# HuggingFace Space deploy artifact (pushed separately to HF repo)
+hf-space/
 
 # Trained model checkpoints (too large for git)
 models/

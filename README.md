@@ -1,5 +1,7 @@
 # NewsLens
 
+**[Live demo on HuggingFace Spaces](https://huggingface.co/spaces/skandasuresh/news-lens)**
+
 An end-to-end NLP pipeline that ingests Indian English-language news, classifies political
 bias using a fine-tuned RoBERTa model, clusters narratives to reveal how different outlets
 frame the same story, and monitors bias drift over time.
@@ -74,8 +76,9 @@ Aggregated across outlets, this surfaces systematic editorial patterns invisible
 article.
 
 **4. Synthesis** - For any topic, the pipeline pulls representative articles from each bias
-group and calls Ollama to generate a neutral factual summary alongside a note on how the
-framing diverged between BJP-aligned and opposition-aligned coverage.
+group and generates a neutral factual summary alongside a note on how the framing diverged
+between BJP-aligned and opposition-aligned coverage. The hosted demo uses the Groq API
+(llama-3.1-8b-instant); running locally uses Ollama (llama3.2:3b).
 
 **5. Bias drift monitoring** - Using historical data from the GDELT Project, the pipeline
 tracks whether an outlet's political lean has shifted month-over-month. Drift events are
@@ -118,7 +121,7 @@ Solution is structurally sparse - news rarely proposes explicit fixes.
 | Training data | GDELT-sourced distant supervision | Outlet identity as weak label; GDELT provides months of historical articles per outlet without manual collection |
 | Embeddings | `all-MiniLM-L6-v2` (Sentence Transformers) | Fast, 384-dim vectors that capture semantic meaning well for news text; fits comfortably on CPU |
 | Clustering | KMeans + DBSCAN fallback | Silhouette score used to choose k; DBSCAN used when no k produces a score above 0.3 |
-| Framing + synthesis | Ollama + `llama3.2:3b` | Runs locally (no API cost), fits in 4GB VRAM, produces reliably parseable JSON for structured extraction |
+| Framing + synthesis | Ollama + `llama3.2:3b` (local) / Groq `llama-3.1-8b-instant` (hosted) | Ollama runs locally with no API cost; Groq used on HuggingFace Spaces via free API tier |
 | Vector store | ChromaDB | Purpose-built for embeddings - persistent, no server required, sits alongside SQLite |
 | Structured storage | SQLite | Single-user, no setup overhead, full SQL flexibility |
 | Historical data | GDELT Project | Free, open, global news archive - provides months of historical Indian outlet data for drift monitoring |
@@ -175,10 +178,12 @@ news-lens/
 
 ## Quick start
 
-The SQLite database and ChromaDB store are included in the repo, so the dashboard works
-immediately without running the pipeline.
+The easiest way to explore NewsLens is the [live demo](https://huggingface.co/spaces/skandasuresh/news-lens) - no setup needed.
 
-**Prerequisites**: Python 3.11, [Ollama](https://ollama.com) installed (for the Synthesis page only)
+To run locally, the SQLite database and ChromaDB store are included in the repo so the
+dashboard works immediately without re-running the pipeline.
+
+**Prerequisites**: Python 3.11, [Ollama](https://ollama.com) installed in WSL (for the Synthesis page only)
 
 ```bash
 git clone https://github.com/skanda-2003/news-lens.git

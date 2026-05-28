@@ -10,8 +10,10 @@ import streamlit as st
 
 from src.db import get_connection, get_distinct_topics
 
-OLLAMA_URL = "http://localhost:11434"
-MODEL      = "llama3.2:3b"
+OLLAMA_URL  = "http://localhost:11434"
+OLLAMA_MODEL = "llama3.2:3b"
+GROQ_URL    = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL  = "llama-3.1-8b-instant"
 
 BIAS_LABELS = ["bjp_aligned", "opposition_aligned", "neutral"]
 BIAS_COLOR  = {
@@ -132,13 +134,24 @@ Use this exact structure:
   "framing_note": "1 sentence describing the key framing difference between BJP-aligned and opposition-aligned coverage"
 }}"""
 
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json={"model": MODEL, "prompt": prompt, "stream": False},
-        timeout=60,
-    )
-    resp.raise_for_status()
-    raw = resp.json().get("response", "")
+    groq_key = os.getenv("GROQ_API_KEY")
+    if groq_key:
+        resp = requests.post(
+            GROQ_URL,
+            headers={"Authorization": f"Bearer {groq_key}"},
+            json={"model": GROQ_MODEL, "messages": [{"role": "user", "content": prompt}], "temperature": 0},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        raw = resp.json()["choices"][0]["message"]["content"]
+    else:
+        resp = requests.post(
+            f"{OLLAMA_URL}/api/generate",
+            json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False},
+            timeout=60,
+        )
+        resp.raise_for_status()
+        raw = resp.json().get("response", "")
 
     # Strip markdown code fences if the model wraps its output
     clean = raw.strip()
@@ -217,11 +230,11 @@ def page_synthesis():
     topic = st.selectbox("Select topic", topics)
 
     if not st.button("Synthesise"):
-        st.info("Select a topic and click Synthesise. This calls a local Ollama model and takes 10-20 seconds.")
+        st.info("Select a topic and click Synthesise. This calls an LLM and takes 10-20 seconds.")
         return
 
-    # --- Ollama health check ---
-    if not _ollama_running():
+    # --- LLM health check ---
+    if not os.getenv("GROQ_API_KEY") and not _ollama_running():
         st.error(
             "Ollama is not running. Start it with:\n\n"
             "```\nsudo systemctl start ollama\n```\n\n"
@@ -245,7 +258,7 @@ def page_synthesis():
         )
 
     # --- Run synthesis ---
-    with st.spinner("Calling Ollama... this takes 10-20 seconds"):
+    with st.spinner("Running synthesis... this takes 10-20 seconds"):
         try:
             synthesis, raw_output = _run_synthesis(topic, json.dumps(articles_by_label))
         except requests.RequestException as e:
