@@ -156,7 +156,6 @@ Use this exact structure:
         pass
 
     # Repair pass: small LLMs sometimes emit  "key": value"  (missing opening quote).
-    # Add the opening quote for any string value that starts with a letter but has no opening quote.
     repaired = re.sub(
         r'(":\s*)([A-Za-z][^"\n]*?")',
         lambda m: m.group(1) + '"' + m.group(2),

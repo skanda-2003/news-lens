@@ -38,10 +38,7 @@ def _umap(topic: str, embeddings: np.ndarray) -> np.ndarray:
 
 
 def _outlet_distribution_chart(cluster_id: int, labels: np.ndarray, metadatas: list[dict]):
-    """
-    Shows which outlets appear in a cluster. Makes it visually obvious when
-    Republic World and The Wire never end up in the same narrative cluster.
-    """
+    """Shows which outlets appear in a given cluster, sorted by article count."""
     outlet_counts: dict = {}
     for lbl, meta in zip(labels, metadatas):
         if lbl != cluster_id:

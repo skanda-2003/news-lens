@@ -46,7 +46,6 @@ def _chart(outlet: str, monthly: pd.DataFrame, baselines: dict, events: pd.DataF
     months = outlet_df["month"].tolist()
     fig    = go.Figure()
 
-    # Bias percentage lines
     for label in ["bjp_aligned", "opposition_aligned", "neutral"]:
         fig.add_trace(go.Scatter(
             x=months,
@@ -57,7 +56,6 @@ def _chart(outlet: str, monthly: pd.DataFrame, baselines: dict, events: pd.DataF
             marker=dict(size=6),
         ))
 
-    # Article count as a faint bar on a secondary y-axis
     fig.add_trace(go.Bar(
         x=months,
         y=outlet_df["n_articles"],
@@ -79,7 +77,6 @@ def _chart(outlet: str, monthly: pd.DataFrame, baselines: dict, events: pd.DataF
             line_width=0,
         )
 
-    # Vertical markers at drift event months
     outlet_events = events[events["outlet"] == outlet] if not events.empty else pd.DataFrame()
     for month in outlet_events["month"].unique():
         fig.add_vline(
