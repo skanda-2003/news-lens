@@ -150,20 +150,9 @@ def cluster_topic(
     """
     Run narrative clustering for a given topic.
 
-    Pulls all embeddings for the topic from ChromaDB, tries KMeans at each k
-    in k_values, picks the k with the highest silhouette score, and falls back
-    to DBSCAN if no k produces a silhouette score above the threshold.
-
-    Returns a dict with everything the notebook needs to plot and analyse:
-      - embeddings: numpy array of shape (n_articles, 384)
-      - headlines: list of article headlines
-      - metadatas: list of metadata dicts (outlet, bias_label, topic, ...)
-      - labels: numpy array of cluster assignments, one per article
-      - method: "kmeans" or "dbscan"
-      - best_k: the chosen k (None if DBSCAN was used)
-      - kmeans_metrics: dict of k → {silhouette, inertia} for the elbow plot
-      - best_silhouette: silhouette score for the chosen clustering
-      - clusters: dict of cluster_id → {representative_headlines, bias_distribution}
+    Tries KMeans for each k in k_values, picks the best silhouette score, falls
+    back to DBSCAN if nothing clears the threshold. Returns a dict with the full
+    result - embeddings, labels, per-cluster summaries, and method/k info.
     """
     collection = get_collection()
     raw = get_by_topic(collection, topic)

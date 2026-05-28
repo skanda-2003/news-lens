@@ -103,13 +103,7 @@ def insert_article(conn: sqlite3.Connection, article: dict) -> bool:
 # --- Query ---
 
 def get_articles(conn: sqlite3.Connection, topic: str = None, outlet: str = None) -> list:
-    """
-    Fetch articles from the database, with optional filters.
-
-    If topic is provided, only articles matching that topic are returned.
-    If outlet is provided, only articles from that outlet are returned.
-    Both filters can be combined.
-    """
+    """Fetch articles from the database. Filters by topic and/or outlet if provided."""
     query = "SELECT * FROM articles WHERE 1=1"
     params = []
 

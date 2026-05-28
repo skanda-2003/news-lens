@@ -239,9 +239,9 @@ streamlit run app/main.py
 
 **Distant supervision labels are outlet-level, not article-level.** A single article from
 Republic TV may be perfectly balanced; the model still sees it as bjp_aligned at training
-time. This is a known trade-off of the approach - the alternative (manual annotation at scale)
-was out of scope. Outlet leanings are based on Reporters Without Borders assessments and
-documented ownership records, not my own judgement.
+time. The alternative - manual annotation at scale - was out of scope. Outlet leanings are
+based on Reporters Without Borders assessments and documented ownership records, not my own
+judgement.
 
 **English-only classifier.** The model was trained on English Indian news and does not
 generalise to Hindi, Tamil, Marathi, or other regional language outlets. Outlets like Aaj Tak
@@ -257,10 +257,9 @@ outputs from Llama 3.2 3B are model interpretations, not ground truth. No human 
 was performed. Phrase fragmentation is a known issue - "Pakistan", "Pakistani government",
 and "Pakistan-backed militants" are counted as separate villain phrases.
 
-**GDELT data is sparse for Indian outlets.** Most outlets average 2-10 articles per month in
-GDELT. Weekly rolling averages are meaningless at this density, so monthly aggregation is
-used instead. Drift events should be read as directional signals, not statistically rigorous
-findings.
+GDELT coverage for Indian outlets is sparse - most average 2-10 articles per month. That's
+why monthly aggregation is used instead of weekly rolling averages. Drift events are
+directional signals, not statistically rigorous findings.
 
 ---
 

@@ -116,7 +116,7 @@ documented press freedom assessments and editorial ownership records, not my own
 
 4. **Sparse GDELT data for Indian outlets** - drift monitoring requires historical monthly data.
    Most Indian outlets average 2-10 articles per month in GDELT, which is too sparse for
-   statistically robust drift detection. Results should be interpreted cautiously.
+   drift detection to mean much. Results should be interpreted cautiously.
 
 5. **Topic contamination** - RSS feeds are not topic-filtered. An article from a political
    outlet's RSS feed may be about cricket. The bias label applies to the outlet, not the topic.

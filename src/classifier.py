@@ -45,20 +45,7 @@ def _build_input(headline: str, body: str) -> str:
 
 
 def predict(headline: str, body: str) -> dict:
-    """
-    Classify a single article. Returns a dict with label, confidence, and trusted flag.
-
-    Args:
-        headline: article headline
-        body:     full article body text (truncated internally to 400 chars)
-
-    Returns:
-        {
-            "label":      "bjp_aligned" | "opposition_aligned" | "neutral",
-            "confidence": float (0-1),
-            "trusted":    bool  (True if confidence >= CONFIDENCE_THRESHOLD)
-        }
-    """
+    """Classify a single article. Returns {'label', 'confidence', 'trusted'}."""
     if _model is None:
         _load_model()
 
@@ -86,14 +73,8 @@ def predict(headline: str, body: str) -> dict:
 
 def predict_batch(articles: list[dict], batch_size: int = 32) -> list[dict]:
     """
-    Classify a list of articles in batches. More efficient than calling predict() in a loop.
-
-    Args:
-        articles:   list of dicts, each with "headline" and "body" keys
-        batch_size: how many articles to tokenize and score at once
-
-    Returns:
-        list of result dicts matching the predict() return format, in the same order
+    Classify a list of articles in batches. Faster than calling predict() in a loop.
+    Each dict needs "headline" and "body" keys. Returns results in the same order.
     """
     if _model is None:
         _load_model()

@@ -2,11 +2,9 @@
 Bias drift calculation module.
 
 Reads classified articles from SQLite, groups them by outlet and calendar month,
-and detects shifts in the bias label distribution over time.
-
-Design note: the original plan called for 7-day rolling averages. The GDELT historical
-data averages 2-5 articles per outlet per month, so weekly rolling windows would be
-mostly empty. Monthly aggregation is the correct granularity for this dataset.
+and detects shifts in the bias label distribution over time. Monthly aggregation
+is used because GDELT averages 2-5 articles per outlet per month - weekly windows
+would be mostly empty.
 """
 
 import os

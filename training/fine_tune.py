@@ -52,12 +52,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 # --- dataset class ---
 
 class BiasDataset(Dataset):
-    """
-    Wraps a DataFrame so PyTorch's DataLoader can pull batches from it.
-
-    PyTorch's DataLoader expects a Dataset object with __len__ and __getitem__.
-    __len__ tells it how many samples exist; __getitem__ tells it how to fetch one.
-    """
+    """Wraps a DataFrame so PyTorch's DataLoader can pull batches from it."""
 
     def __init__(self, df, tokenizer):
         # reset_index so iloc[0] always means the first row regardless of the original index

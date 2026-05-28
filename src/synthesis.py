@@ -1,8 +1,8 @@
 """
-Synthesis module - takes articles from different-leaning outlets on the same topic
-and uses Ollama to produce a neutral factual summary alongside framing differences.
+Synthesis module - generates a neutral factual summary and framing comparison for a
+topic by pulling articles from all three bias groups and calling Ollama.
 
-This is the backend for the Synthesis dashboard page (app/views/synthesis.py).
+Backend for the Synthesis dashboard page (app/views/synthesis.py).
 get_articles_for_synthesis() fetches the articles; synthesize() calls Ollama.
 """
 
