@@ -54,7 +54,7 @@ def generate_embeddings(batch_size: int = 64) -> None:
 
     print(f"Embedding {len(rows)} articles in batches of {batch_size}...")
 
-    # Process in batches so we don't load all 472 texts into memory at once
+    # Process in batches so I don't load all texts into memory at once
     for batch_start in tqdm(range(0, len(rows), batch_size)):
         batch = rows[batch_start : batch_start + batch_size]
 

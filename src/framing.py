@@ -120,7 +120,7 @@ def extract_framing(limit: int = None) -> None:
     conn = get_connection()
 
     # Only fetch articles where framing hasn't been attempted yet
-    # framing_parsed IS NULL means we've never run framing on this article
+    # framing_parsed IS NULL means I haven't run framing on this article yet
     query = """
         SELECT id, headline, body
         FROM articles
@@ -146,7 +146,7 @@ def extract_framing(limit: int = None) -> None:
         word_count = len(body.split())
         if word_count < MIN_WORDS:
             logger.info(f"[{i+1}/{len(rows)}] Skipping article {article_id} - only {word_count} words")
-            # Mark as attempted but skipped so we don't revisit it
+            # Mark as attempted but skipped so I don't revisit it
             conn.execute(
                 "UPDATE articles SET framing_parsed = 0 WHERE id = ?",
                 (article_id,)
@@ -197,7 +197,7 @@ def extract_framing(limit: int = None) -> None:
 
         conn.commit()
 
-        # Small delay between requests so we don't overwhelm Ollama
+        # Small delay between requests so I don't overwhelm Ollama
         time.sleep(0.5)
 
     logger.info(f"Done. Success: {success} | Failed/skipped: {failed}")

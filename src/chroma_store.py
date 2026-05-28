@@ -66,7 +66,7 @@ def query_similar(
     Find the N articles whose embeddings are most similar to the given embedding.
 
     filters is an optional ChromaDB `where` clause to narrow results by metadata,
-    e.g. {"topic": "climate change"} or {"bias_label": "right"}.
+    e.g. {"topic": "India Pakistan"} or {"bias_label": "bjp_aligned"}.
 
     Returns a list of dicts with keys: id, headline, distance, metadata.
     """
