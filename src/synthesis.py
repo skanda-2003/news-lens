@@ -103,19 +103,33 @@ def _format_articles(articles: list[dict]) -> str:
     return "\n\n".join(parts)
 
 
+def _repair_json_quotes(text: str) -> str:
+    """Fix missing opening quotes: "key": value..."  ->  "key": "value..."""
+    import re
+    return re.sub(
+        r'(":\s*)([A-Za-z][^"\n]*?")',
+        lambda m: m.group(1) + '"' + m.group(2),
+        text,
+    )
+
+
 def _parse_response(raw: str) -> dict | None:
     """
     Parse Ollama JSON output. Returns None on any failure so the caller can
     show a graceful error rather than crashing.
     """
-    try:
-        cleaned = raw.strip().strip("```json").strip("```").strip()
-        parsed  = json.loads(cleaned)
-        if not all(k in parsed for k in ("factual_summary", "agreed_facts", "framing_note")):
-            return None
-        return parsed
-    except (json.JSONDecodeError, AttributeError):
-        return None
+    cleaned = raw.strip().strip("```json").strip("```").strip()
+    required = ("factual_summary", "agreed_facts", "framing_note")
+
+    for candidate in (cleaned, _repair_json_quotes(cleaned)):
+        try:
+            parsed = json.loads(candidate)
+            if all(k in parsed for k in required):
+                return parsed
+        except (json.JSONDecodeError, AttributeError):
+            pass
+
+    return None
 
 
 def synthesize(articles: list[dict]) -> dict | None:

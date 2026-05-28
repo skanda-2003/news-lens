@@ -14,16 +14,44 @@ differences unusually large and measurable.
 
 ## Screenshots
 
-| | |
-|---|---|
-| ![Live Feed](screenshots/live_feed.png) | ![Narrative Map](screenshots/narrative_map.png) |
-| *Live Feed - articles with bias labels and distribution bar* | *Narrative Map - UMAP clusters by topic* |
-| ![Framing Explorer](screenshots/framing_explorer.png) | ![Framing by Outlet](screenshots/framing_by_outlet.png) |
-| *Framing Explorer - top villain/victim/solution phrases* | *Framing by outlet - which outlet blames whom* |
-| ![Synthesis - what happened](screenshots/synthesis_what_happened.png) | ![Synthesis - how it was framed](screenshots/synthesis_how_it_was_framed.png) |
-| *Synthesis - neutral factual summary* | *Synthesis - BJP-aligned vs opposition framing side by side* |
-| ![Drift Monitor](screenshots/drift_monitor.png) | |
-| *Drift Monitor - bias shift over time per outlet* | |
+<table>
+<tr>
+<td width="50%">
+<img src="screenshots/live_feed.png" width="100%" alt="Live Feed">
+<p align="center"><em>Live Feed - articles with bias labels and distribution bar</em></p>
+</td>
+<td width="50%">
+<img src="screenshots/narrative_map.png" width="100%" alt="Narrative Map">
+<p align="center"><em>Narrative Map - UMAP clusters by topic</em></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="screenshots/framing_explorer.png" width="100%" alt="Framing Explorer">
+<p align="center"><em>Framing Explorer - top villain/victim/solution phrases</em></p>
+</td>
+<td width="50%">
+<img src="screenshots/framing_by_outlet.png" width="100%" alt="Framing by Outlet">
+<p align="center"><em>Framing by outlet - which outlet blames whom</em></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="screenshots/synthesis_what_happened.png" width="100%" alt="Synthesis - What Happened">
+<p align="center"><em>Synthesis - neutral factual summary</em></p>
+</td>
+<td width="50%">
+<img src="screenshots/synthesis_how_it_was_framed.png" width="100%" alt="Synthesis - How It Was Framed">
+<p align="center"><em>Synthesis - BJP-aligned vs opposition framing side by side</em></p>
+</td>
+</tr>
+<tr>
+<td colspan="2" align="center">
+<img src="screenshots/drift_monitor.png" width="75%" alt="Drift Monitor">
+<p align="center"><em>Drift Monitor - bias shift over time per outlet</em></p>
+</td>
+</tr>
+</table>
 
 ---
 

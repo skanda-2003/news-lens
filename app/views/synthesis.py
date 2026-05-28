@@ -124,6 +124,7 @@ NEUTRAL COVERAGE:
 
 Respond with a JSON object only. Do not include any text before or after the JSON.
 Do not use quotation marks inside string values - rephrase to avoid them.
+Every string value MUST begin AND end with a double quote character.
 Use this exact structure:
 {{
   "factual_summary": "2-3 sentences describing what actually happened based on facts present across multiple articles",
@@ -154,11 +155,33 @@ Use this exact structure:
     except json.JSONDecodeError:
         pass
 
+    # Repair pass: small LLMs sometimes emit  "key": value"  (missing opening quote).
+    # Add the opening quote for any string value that starts with a letter but has no opening quote.
+    repaired = re.sub(
+        r'(":\s*)([A-Za-z][^"\n]*?")',
+        lambda m: m.group(1) + '"' + m.group(2),
+        clean,
+    )
+    try:
+        return json.loads(repaired), raw
+    except json.JSONDecodeError:
+        pass
+
     # Regex fallback: find the outermost {...} block in case the model added preamble/postamble
     match = re.search(r'\{.*\}', clean, re.DOTALL)
     if match:
+        extracted = match.group()
         try:
-            return json.loads(match.group()), raw
+            return json.loads(extracted), raw
+        except json.JSONDecodeError:
+            pass
+        # Repair pass on extracted block too
+        try:
+            return json.loads(re.sub(
+                r'(":\s*)([A-Za-z][^"\n]*?")',
+                lambda m: m.group(1) + '"' + m.group(2),
+                extracted,
+            )), raw
         except json.JSONDecodeError:
             pass
 
